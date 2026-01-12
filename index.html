@@ -2,7 +2,7 @@
 <html lang="fil">
 <head>
     <meta charset="UTF-8">
-    <title>VTS Dashboard - Multi-Select & Hide</title>
+    <title>VTS Dashboard - Final Format</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
@@ -10,20 +10,21 @@
         .upload-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; border-top: 5px solid #4472c4; }
         .upload-flex { display: flex; gap: 15px; align-items: flex-end; }
         
-        button { border: none; padding: 12px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button { border: none; padding: 12px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        button:hover { opacity: 0.8; }
         .btn-refresh { background: #28a745; color: white; }
         .btn-display { background: #4472c4; color: white; }
-        .btn-hide { background: #6c757d; color: white; margin-left: 10px; }
+        .btn-hide { background: #6c757d; color: white; margin-left: 10px; font-size: 11px; }
 
         table { width: 100%; border-collapse: collapse; background: white; border: 2px solid #000; margin-top: 10px; font-size: 11px; }
-        th { background-color: #333; color: white; padding: 8px; border: 1px solid #000; position: sticky; top: 0; z-index: 10; min-width: 120px; }
+        th { background-color: #333; color: white; padding: 8px; border: 1px solid #000; position: sticky; top: 0; z-index: 10; min-width: 110px; }
         td { border: 1px solid #000; padding: 6px; text-align: center; white-space: nowrap; }
 
         .filter-container { position: relative; margin-top: 5px; color: black; font-weight: normal; }
-        .dropdown-button { background: #fff; border: 1px solid #ccc; padding: 4px; width: 90%; cursor: pointer; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; display: block; margin: 0 auto; }
-        .dropdown-content { display: none; position: absolute; background: #fff; border: 1px solid #333; width: 220px; max-height: 250px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 8px rgba(0,0,0,0.2); text-align: left; padding: 5px; }
-        .dropdown-content label { display: block; padding: 4px; cursor: pointer; font-size: 11px; border-bottom: 1px dotted #eee; }
-        .dropdown-content label:hover { background: #f0f7ff; }
+        .dropdown-button { background: #fff; border: 1px solid #ccc; padding: 4px; width: 92%; cursor: pointer; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; display: block; margin: 0 auto; border-radius: 3px; }
+        .dropdown-content { display: none; position: absolute; background: #fff; border: 1px solid #333; width: 230px; max-height: 250px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 8px rgba(0,0,0,0.2); text-align: left; padding: 5px; }
+        .dropdown-content label { display: block; padding: 5px; cursor: pointer; font-size: 11px; border-bottom: 1px solid #f0f0f0; }
+        .dropdown-content label:hover { background: #e7f1ff; }
         .show { display: block; }
         
         .dashboard-table td { font-weight: bold; font-size: 14px; }
@@ -31,8 +32,8 @@
         .total-header { background-color: #ffc000; color: black; }
         .display-container { overflow: auto; margin-top: 5px; background: white; border: 1px solid #ccc; max-height: 550px; }
         .title-sec { background: #4472c4; color: white; padding: 12px; font-weight: bold; text-align: center; border: 2px solid #000; border-bottom: none; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .count-badge { background: #fff; color: #4472c4; padding: 2px 10px; border-radius: 10px; font-size: 12px; margin-left: 15px; }
-        .new-col { background-color: #e2efda; font-weight: bold; }
+        .count-badge { background: #fff; color: #4472c4; padding: 2px 10px; border-radius: 10px; font-size: 12px; margin-left: 15px; border: 1px solid #4472c4; }
+        .new-col { background-color: #e2efda; font-weight: bold; color: #1e4620; }
     </style>
 </head>
 <body>
@@ -80,14 +81,28 @@
 
     <script>
         let hData = [], aData = [];
-        const columnsToShow = ["C/S No.", "Model Description", "Exterior Color", "Vehicle Stockyard", "INSPECTION DATE", "DESTINATION", "CARRIER", "PREPARED (AC)", "INSPECTED (AD)"];
+        const columnsToShow = [
+            "C/S No.", 
+            "Model Description", 
+            "Exterior Color", 
+            "Vehicle Stockyard", 
+            "ETD MP", 
+            "DESTINATION", 
+            "ETA DEALER / POL", 
+            "CARRIER", 
+            "PREPARED (AC)", 
+            "INSPECTED (AD)"
+        ];
 
-        // File Readers
         document.getElementById('hInput').addEventListener('change', e => {
             const reader = new FileReader();
             reader.onload = function(e) {
-                const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-                hData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                const workbook = XLSX.read(new Uint8Array(e.target.result), { 
+                    type: 'array',
+                    cellDates: true, // Import dates correctly
+                    dateNF: 'mm/dd/yyyy hh:mm' // Set default date format
+                });
+                hData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { raw: false });
             };
             reader.readAsArrayBuffer(e.target.files[0]);
         });
@@ -120,7 +135,7 @@
                     p.push(plan); pr.push(prep); i.push(insp); v.push(plan-insp);
                 });
                 const sum = a => a.reduce((x,y)=>x+y,0);
-                html += `<tr style="background:white"><td rowspan="4">${cat}</td><td>PLAN</td>${p.map(n=>`<td>${n}</td>`).join('')}<td class="total-header">${sum(p)}</td></tr>`;
+                html += `<tr style="background:white"><td>${cat}</td><td>PLAN</td>${p.map(n=>`<td>${n}</td>`).join('')}<td class="total-header">${sum(p)}</td></tr>`;
                 html += `<tr style="background:#e2efda"><td>PREPARED</td>${pr.map(n=>`<td>${n}</td>`).join('')}<td class="total-header">${sum(pr)}</td></tr>`;
                 html += `<tr style="background:#fff2cc"><td>INSPECT</td>${i.map(n=>`<td>${n}</td>`).join('')}<td class="total-header">${sum(i)}</td></tr>`;
                 html += `<tr style="background:#fce4d6;color:red"><td>VAR</td>${v.map(n=>`<td>${n}</td>`).join('')}<td class="total-header">${sum(v)}</td></tr>`;
@@ -160,7 +175,6 @@
             tbody.innerHTML = mergedData.map(row => `<tr>${columnsToShow.map(col => `<td class="${col.includes('(A')?'new-col':''}">${row[col]||""}</td>`).join('')}</tr>`).join('');
             
             updateCount();
-            document.getElementById('displayArea').scrollIntoView({behavior:'smooth'});
         }
 
         function toggleDropdown(idx) {
