@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="fil">
+<head>
+    <meta charset="UTF-8">
+    <title>VTS Dashboard - Multi-Select & Hide</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 20px; }
+        .upload-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; border-top: 5px solid #4472c4; }
+        .upload-flex { display: flex; gap: 15px; align-items: flex-end; }
+        
+        button { border: none; padding: 12px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-refresh { background: #28a745; color: white; }
+        .btn-display { background: #4472c4; color: white; }
+        .btn-hide { background: #6c757d; color: white; margin-left: 10px; }
+
+        table { width: 100%; border-collapse: collapse; background: white; border: 2px solid #000; margin-top: 10px; font-size: 11px; }
+        th { background-color: #333; color: white; padding: 8px; border: 1px solid #000; position: sticky; top: 0; z-index: 10; min-width: 120px; }
+        td { border: 1px solid #000; padding: 6px; text-align: center; white-space: nowrap; }
+
+        .filter-container { position: relative; margin-top: 5px; color: black; font-weight: normal; }
+        .dropdown-button { background: #fff; border: 1px solid #ccc; padding: 4px; width: 90%; cursor: pointer; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; display: block; margin: 0 auto; }
+        .dropdown-content { display: none; position: absolute; background: #fff; border: 1px solid #333; width: 220px; max-height: 250px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 8px rgba(0,0,0,0.2); text-align: left; padding: 5px; }
+        .dropdown-content label { display: block; padding: 4px; cursor: pointer; font-size: 11px; border-bottom: 1px dotted #eee; }
+        .dropdown-content label:hover { background: #f0f7ff; }
+        .show { display: block; }
+        
+        .dashboard-table td { font-weight: bold; font-size: 14px; }
+        .loc-header { background-color: #ffff00; color: black; }
+        .total-header { background-color: #ffc000; color: black; }
+        .display-container { overflow: auto; margin-top: 5px; background: white; border: 1px solid #ccc; max-height: 550px; }
+        .title-sec { background: #4472c4; color: white; padding: 12px; font-weight: bold; text-align: center; border: 2px solid #000; border-bottom: none; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .count-badge { background: #fff; color: #4472c4; padding: 2px 10px; border-radius: 10px; font-size: 12px; margin-left: 15px; }
+        .new-col { background-color: #e2efda; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="upload-card">
+        <div class="upload-flex">
+            <div><strong>1. HAULING PLAN (.XLSX):</strong><br><input type="file" id="hInput" accept=".xlsx"></div>
+            <div><strong>2. ANDON (.CSV):</strong><br><input type="file" id="aInput" accept=".csv"></div>
+            <button class="btn-refresh" onclick="updateDashboard()">REFRESH DASHBOARD</button>
+            <button class="btn-display" onclick="displayHaulingPlan()">SHOW HAULING PLAN</button>
+        </div>
+    </div>
+
+    <div class="title-sec">VTS MONITORING DASHBOARD</div>
+    <table class="dashboard-table">
+        <thead>
+            <tr>
+                <th colspan="2">CATEGORY / STATUS</th>
+                <th class="loc-header">1K11 - Aratan</th>
+                <th class="loc-header">1K06 - Crosstown</th>
+                <th class="loc-header">1K07 - FilSyn</th>
+                <th class="loc-header">1K03 - LGICT</th>
+                <th class="loc-header">1K12 - Lawa</th>
+                <th class="total-header">TOTAL</th>
+            </tr>
+        </thead>
+        <tbody id="vtsBody"></tbody>
+    </table>
+
+    <div id="displayArea" style="display:none;">
+        <div class="title-sec">
+            <div>
+                HAULING PLAN DETAILS 
+                <span class="count-badge" id="rowCount">Showing: 0 / 0</span>
+            </div>
+            <button class="btn-hide" onclick="hideHaulingPlan()">HIDE DETAILS ▲</button>
+        </div>
+        <div class="display-container">
+            <table id="haulingDisplayTable">
+                <thead id="displayHead"></thead>
+                <tbody id="displayBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let hData = [], aData = [];
+        const columnsToShow = ["C/S No.", "Model Description", "Exterior Color", "Vehicle Stockyard", "INSPECTION DATE", "DESTINATION", "CARRIER", "PREPARED (AC)", "INSPECTED (AD)"];
+
+        // File Readers
+        document.getElementById('hInput').addEventListener('change', e => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                hData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+            };
+            reader.readAsArrayBuffer(e.target.files[0]);
+        });
+
+        document.getElementById('aInput').addEventListener('change', e => {
+            Papa.parse(e.target.files[0], { header: true, skipEmptyLines: 'greedy', complete: r => aData = r.data });
+        });
+
+        function hideHaulingPlan() {
+            document.getElementById('displayArea').style.display = "none";
+        }
+
+        function updateDashboard() {
+            if (!hData.length || !aData.length) return alert("Upload files first.");
+            const andonMap = new Map();
+            aData.forEach(r => { if(r.csnumber) andonMap.set(r.csnumber.trim().toUpperCase(), r); });
+            
+            const categories = ["RVL", "DSTC", "RPM", "WILL EX", "GSDC"];
+            const mapping = [{hKey:"1K11"},{hKey:"1K06"},{hKey:"1K07"},{hKey:"1K03"},{hKey:"1K12"}];
+            let html = "";
+            categories.forEach(cat => {
+                let p=[], pr=[], i=[], v=[];
+                mapping.forEach(loc => {
+                    const units = hData.filter(r => String(r['CARRIER']||"").toUpperCase().includes(cat) && String(r['Vehicle Stockyard']||"").includes(loc.hKey));
+                    let plan=units.length, prep=0, insp=0;
+                    units.forEach(u => {
+                        const s = andonMap.get(String(u['C/S No.']||"").trim().toUpperCase());
+                        if(s){ if(s.prepared==='Y') prep++; if(s.inspected_by && s.inspected_by.toUpperCase()!=='NULL') insp++; }
+                    });
+                    p.push(plan); pr.push(prep); i.push(insp); v.push(plan-insp);
+                });
+                const sum = a => a.reduce((x,y)=>x+y,0);
+                html += `<tr style="background:white"><td rowspan="4">${cat}</td><td>PLAN</td>${p.map(n=>`<td>${n}</td>`).join('')}<td class="total-header">${sum(p)}</td></tr>`;
+                html += `<tr style="background:#e2efda"><td>PREPARED</td>${pr.map(n=>`<td>${n}</td>`).join('')}<td class="total-header">${sum(pr)}</td></tr>`;
+                html += `<tr style="background:#fff2cc"><td>INSPECT</td>${i.map(n=>`<td>${n}</td>`).join('')}<td class="total-header">${sum(i)}</td></tr>`;
+                html += `<tr style="background:#fce4d6;color:red"><td>VAR</td>${v.map(n=>`<td>${n}</td>`).join('')}<td class="total-header">${sum(v)}</td></tr>`;
+                html += `<tr><td colspan="8" style="background:black;height:2px"></td></tr>`;
+            });
+            document.getElementById('vtsBody').innerHTML = html;
+        }
+
+        function displayHaulingPlan() {
+            if (!hData.length || !aData.length) return alert("Upload files first.");
+            const andonMap = new Map();
+            aData.forEach(r => { if(r.csnumber) andonMap.set(r.csnumber.trim().toUpperCase(), r); });
+            document.getElementById('displayArea').style.display = "block";
+
+            const mergedData = hData.map(row => ({
+                ...row,
+                "PREPARED (AC)": andonMap.get(String(row['C/S No.']||"").trim().toUpperCase())?.prepared === 'Y' ? 'Y' : 'N',
+                "INSPECTED (AD)": andonMap.get(String(row['C/S No.']||"").trim().toUpperCase())?.inspected_by || ""
+            }));
+
+            const thead = document.getElementById('displayHead');
+            const tbody = document.getElementById('displayBody');
+            
+            let headHtml = "<tr>";
+            columnsToShow.forEach((col, idx) => {
+                let uniqueVals = [...new Set(mergedData.map(item => String(item[col] || "").trim()))].sort();
+                headHtml += `<th>${col}<div class="filter-container">
+                    <div class="dropdown-button" onclick="toggleDropdown(${idx})">Filter...</div>
+                    <div id="drop-${idx}" class="dropdown-content">
+                        <label><input type="checkbox" onchange="toggleAll(${idx}, this)"> (Select All)</label>
+                        <label><input type="checkbox" value="BLANK" onchange="applyFilter()"> (Blanks)</label>
+                        ${uniqueVals.filter(v=>v!=="").map(v=>`<label><input type="checkbox" value="${v}" onchange="applyFilter()"> ${v}</label>`).join('')}
+                    </div>
+                </div></th>`;
+            });
+            thead.innerHTML = headHtml + "</tr>";
+            tbody.innerHTML = mergedData.map(row => `<tr>${columnsToShow.map(col => `<td class="${col.includes('(A')?'new-col':''}">${row[col]||""}</td>`).join('')}</tr>`).join('');
+            
+            updateCount();
+            document.getElementById('displayArea').scrollIntoView({behavior:'smooth'});
+        }
+
+        function toggleDropdown(idx) {
+            document.querySelectorAll('.dropdown-content').forEach((d, i) => { if(i !== idx) d.classList.remove('show'); });
+            document.getElementById(`drop-${idx}`).classList.toggle('show');
+        }
+
+        function toggleAll(idx, master) {
+            document.getElementById(`drop-${idx}`).querySelectorAll('input').forEach(i => i.checked = master.checked);
+            applyFilter();
+        }
+
+        function applyFilter() {
+            const rows = document.getElementById("displayBody").rows;
+            const drops = document.querySelectorAll('.dropdown-content');
+            const filters = Array.from(drops).map(d => {
+                const checked = Array.from(d.querySelectorAll('input:checked')).map(i => i.value);
+                return checked.length === 0 || checked.includes('on') ? null : checked;
+            });
+
+            let visibleCount = 0;
+            for (let i = 0; i < rows.length; i++) {
+                let isVisible = true;
+                for (let j = 0; j < filters.length; j++) {
+                    if (filters[j]) {
+                        let val = rows[i].cells[j].textContent.trim() || "BLANK";
+                        if (!filters[j].includes(val)) { isVisible = false; break; }
+                    }
+                }
+                rows[i].style.display = isVisible ? "" : "none";
+                if(isVisible) visibleCount++;
+            }
+            updateCount(visibleCount);
+        }
+
+        function updateCount(visible) {
+            const total = document.getElementById("displayBody").rows.length;
+            const current = (visible === undefined) ? total : visible;
+            document.getElementById("rowCount").textContent = `Showing: ${current} / ${total} units`;
+        }
+
+        window.onclick = e => {
+            if (!e.target.matches('.dropdown-button') && !e.target.closest('.dropdown-content')) {
+                document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show'));
+            }
+        }
+    </script>
+</body>
+</html>
