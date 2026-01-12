@@ -2,48 +2,60 @@
 <html lang="fil">
 <head>
     <meta charset="UTF-8">
-    <title>VTS Dashboard - Final Format</title>
+    <title>VTS Dashboard - Fit to Screen</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 20px; }
-        .upload-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; border-top: 5px solid #4472c4; }
-        .upload-flex { display: flex; gap: 15px; align-items: flex-end; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 10px; margin: 0; }
+        .upload-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 15px; border-top: 5px solid #4472c4; }
+        .upload-flex { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
         
-        button { border: none; padding: 12px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.3s; }
-        button:hover { opacity: 0.8; }
+        button { border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; }
         .btn-refresh { background: #28a745; color: white; }
         .btn-display { background: #4472c4; color: white; }
-        .btn-hide { background: #6c757d; color: white; margin-left: 10px; font-size: 11px; }
+        .btn-hide { background: #6c757d; color: white; font-size: 10px; padding: 5px 10px; }
 
-        table { width: 100%; border-collapse: collapse; background: white; border: 2px solid #000; margin-top: 10px; font-size: 11px; }
-        th { background-color: #333; color: white; padding: 8px; border: 1px solid #000; position: sticky; top: 0; z-index: 10; min-width: 110px; }
-        td { border: 1px solid #000; padding: 6px; text-align: center; white-space: nowrap; }
+        /* FIT TO SCREEN TABLE SETTINGS */
+        table { width: 100%; border-collapse: collapse; background: white; border: 1px solid #000; table-layout: fixed; } /* table-layout: fixed para sumunod sa width */
+        th { background-color: #333; color: white; padding: 5px 2px; border: 1px solid #000; position: sticky; top: 0; z-index: 10; font-size: 10px; word-wrap: break-word; }
+        td { border: 1px solid #000; padding: 4px 2px; text-align: center; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-        .filter-container { position: relative; margin-top: 5px; color: black; font-weight: normal; }
-        .dropdown-button { background: #fff; border: 1px solid #ccc; padding: 4px; width: 92%; cursor: pointer; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; display: block; margin: 0 auto; border-radius: 3px; }
-        .dropdown-content { display: none; position: absolute; background: #fff; border: 1px solid #333; width: 230px; max-height: 250px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 8px rgba(0,0,0,0.2); text-align: left; padding: 5px; }
-        .dropdown-content label { display: block; padding: 5px; cursor: pointer; font-size: 11px; border-bottom: 1px solid #f0f0f0; }
-        .dropdown-content label:hover { background: #e7f1ff; }
-        .show { display: block; }
+        .filter-container { position: relative; margin-top: 3px; color: black; font-weight: normal; }
+        .dropdown-button { background: #fff; border: 1px solid #ccc; padding: 2px; width: 95%; cursor: pointer; text-align: left; font-size: 9px; display: block; margin: 0 auto; border-radius: 2px; }
+        .dropdown-content { display: none; position: absolute; background: #fff; border: 1px solid #333; width: 180px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 8px rgba(0,0,0,0.2); text-align: left; padding: 5px; }
+        .dropdown-content label { display: block; padding: 4px; cursor: pointer; font-size: 10px; border-bottom: 1px solid #f0f0f0; }
         
-        .dashboard-table td { font-weight: bold; font-size: 14px; }
-        .loc-header { background-color: #ffff00; color: black; }
-        .total-header { background-color: #ffc000; color: black; }
-        .display-container { overflow: auto; margin-top: 5px; background: white; border: 1px solid #ccc; max-height: 550px; }
-        .title-sec { background: #4472c4; color: white; padding: 12px; font-weight: bold; text-align: center; border: 2px solid #000; border-bottom: none; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .count-badge { background: #fff; color: #4472c4; padding: 2px 10px; border-radius: 10px; font-size: 12px; margin-left: 15px; border: 1px solid #4472c4; }
-        .new-col { background-color: #e2efda; font-weight: bold; color: #1e4620; }
+        .dashboard-table { table-layout: auto; margin-bottom: 20px; }
+        .dashboard-table td { font-weight: bold; font-size: 13px; padding: 8px; }
+        
+        .display-container { width: 100%; overflow-x: hidden; background: white; border: 1px solid #ccc; max-height: 500px; }
+        .title-sec { background: #4472c4; color: white; padding: 8px 15px; font-weight: bold; text-align: center; border: 1px solid #000; display: flex; justify-content: space-between; align-items: center; }
+        .count-badge { background: #fff; color: #4472c4; padding: 1px 8px; border-radius: 8px; font-size: 11px; }
+        .new-col { background-color: #e2efda; font-weight: bold; }
+        
+        /* Column Width Allocations */
+        .col-cs { width: 7%; }
+        .col-desc { width: 15%; }
+        .col-color { width: 10%; }
+        .col-yard { width: 12%; }
+        .col-etd { width: 11%; }
+        .col-dest { width: 12%; }
+        .col-eta { width: 11%; }
+        .col-carrier { width: 8%; }
+        .col-prep { width: 6%; }
+        .col-insp { width: 8%; }
+
+        .show { display: block; }
     </style>
 </head>
 <body>
 
     <div class="upload-card">
         <div class="upload-flex">
-            <div><strong>1. HAULING PLAN (.XLSX):</strong><br><input type="file" id="hInput" accept=".xlsx"></div>
+            <div><strong>1. HAULING PLAN:</strong><br><input type="file" id="hInput" accept=".xlsx"></div>
             <div><strong>2. ANDON (.CSV):</strong><br><input type="file" id="aInput" accept=".csv"></div>
-            <button class="btn-refresh" onclick="updateDashboard()">REFRESH DASHBOARD</button>
-            <button class="btn-display" onclick="displayHaulingPlan()">SHOW HAULING PLAN</button>
+            <button class="btn-refresh" onclick="updateDashboard()">REFRESH</button>
+            <button class="btn-display" onclick="displayHaulingPlan()">SHOW DETAILS</button>
         </div>
     </div>
 
@@ -52,12 +64,12 @@
         <thead>
             <tr>
                 <th colspan="2">CATEGORY / STATUS</th>
-                <th class="loc-header">1K11 - Aratan</th>
-                <th class="loc-header">1K06 - Crosstown</th>
-                <th class="loc-header">1K07 - FilSyn</th>
-                <th class="loc-header">1K03 - LGICT</th>
-                <th class="loc-header">1K12 - Lawa</th>
-                <th class="total-header">TOTAL</th>
+                <th style="background:#ffff00; color:000;">1K11 - Aratan</th>
+                <th style="background:#ffff00; color:000;">1K06 - Crosstown</th>
+                <th style="background:#ffff00; color:000;">1K07 - FilSyn</th>
+                <th style="background:#ffff00; color:000;">1K03 - LGICT</th>
+                <th style="background:#ffff00; color:000;">1K12 - Lawa</th>
+                <th style="background:#ffc000; color:000;">TOTAL</th>
             </tr>
         </thead>
         <tbody id="vtsBody"></tbody>
@@ -65,14 +77,16 @@
 
     <div id="displayArea" style="display:none;">
         <div class="title-sec">
-            <div>
-                HAULING PLAN DETAILS 
-                <span class="count-badge" id="rowCount">Showing: 0 / 0</span>
-            </div>
-            <button class="btn-hide" onclick="hideHaulingPlan()">HIDE DETAILS ▲</button>
+            <div>DETAILS <span class="count-badge" id="rowCount">0 / 0</span></div>
+            <button class="btn-hide" onclick="hideHaulingPlan()">HIDE ▲</button>
         </div>
         <div class="display-container">
             <table id="haulingDisplayTable">
+                <colgroup>
+                    <col class="col-cs"><col class="col-desc"><col class="col-color">
+                    <col class="col-yard"><col class="col-etd"><col class="col-dest">
+                    <col class="col-eta"><col class="col-carrier"><col class="col-prep"><col class="col-insp">
+                </colgroup>
                 <thead id="displayHead"></thead>
                 <tbody id="displayBody"></tbody>
             </table>
@@ -81,27 +95,12 @@
 
     <script>
         let hData = [], aData = [];
-        const columnsToShow = [
-            "C/S No.", 
-            "Model Description", 
-            "Exterior Color", 
-            "Vehicle Stockyard", 
-            "ETD MP", 
-            "DESTINATION", 
-            "ETA DEALER / POL", 
-            "CARRIER", 
-            "PREPARED (AC)", 
-            "INSPECTED (AD)"
-        ];
+        const columnsToShow = ["C/S No.", "Model Description", "Exterior Color", "Vehicle Stockyard", "ETD MP", "DESTINATION", "ETA DEALER / POL", "CARRIER", "PREPARED (AC)", "INSPECTED (AD)"];
 
         document.getElementById('hInput').addEventListener('change', e => {
             const reader = new FileReader();
             reader.onload = function(e) {
-                const workbook = XLSX.read(new Uint8Array(e.target.result), { 
-                    type: 'array',
-                    cellDates: true, // Import dates correctly
-                    dateNF: 'mm/dd/yyyy hh:mm' // Set default date format
-                });
+                const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true, dateNF: 'mm/dd/yyyy hh:mm' });
                 hData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { raw: false });
             };
             reader.readAsArrayBuffer(e.target.files[0]);
@@ -111,15 +110,12 @@
             Papa.parse(e.target.files[0], { header: true, skipEmptyLines: 'greedy', complete: r => aData = r.data });
         });
 
-        function hideHaulingPlan() {
-            document.getElementById('displayArea').style.display = "none";
-        }
+        function hideHaulingPlan() { document.getElementById('displayArea').style.display = "none"; }
 
         function updateDashboard() {
-            if (!hData.length || !aData.length) return alert("Upload files first.");
+            if (!hData.length || !aData.length) return alert("Upload files.");
             const andonMap = new Map();
             aData.forEach(r => { if(r.csnumber) andonMap.set(r.csnumber.trim().toUpperCase(), r); });
-            
             const categories = ["RVL", "DSTC", "RPM", "WILL EX", "GSDC"];
             const mapping = [{hKey:"1K11"},{hKey:"1K06"},{hKey:"1K07"},{hKey:"1K03"},{hKey:"1K12"}];
             let html = "";
@@ -135,17 +131,17 @@
                     p.push(plan); pr.push(prep); i.push(insp); v.push(plan-insp);
                 });
                 const sum = a => a.reduce((x,y)=>x+y,0);
-                html += `<tr style="background:white"><td>${cat}</td><td>PLAN</td>${p.map(n=>`<td>${n}</td>`).join('')}<td class="total-header">${sum(p)}</td></tr>`;
-                html += `<tr style="background:#e2efda"><td>PREPARED</td>${pr.map(n=>`<td>${n}</td>`).join('')}<td class="total-header">${sum(pr)}</td></tr>`;
-                html += `<tr style="background:#fff2cc"><td>INSPECT</td>${i.map(n=>`<td>${n}</td>`).join('')}<td class="total-header">${sum(i)}</td></tr>`;
-                html += `<tr style="background:#fce4d6;color:red"><td>VAR</td>${v.map(n=>`<td>${n}</td>`).join('')}<td class="total-header">${sum(v)}</td></tr>`;
-                html += `<tr><td colspan="8" style="background:black;height:2px"></td></tr>`;
+                html += `<tr style="background:white"><td>${cat}</td><td>PLAN</td>${p.map(n=>`<td>${n}</td>`).join('')}<td style="background:#ffc000">${sum(p)}</td></tr>`;
+                html += `<tr style="background:#e2efda"><td>PREP</td>${pr.map(n=>`<td>${n}</td>`).join('')}<td style="background:#ffc000">${sum(pr)}</td></tr>`;
+                html += `<tr style="background:#fff2cc"><td>INSP</td>${i.map(n=>`<td>${n}</td>`).join('')}<td style="background:#ffc000">${sum(i)}</td></tr>`;
+                html += `<tr style="background:#fce4d6;color:red"><td>VAR</td>${v.map(n=>`<td>${n}</td>`).join('')}<td style="background:#ffc000">${sum(v)}</td></tr>`;
+                html += `<tr><td colspan="8" style="background:black;height:1px"></td></tr>`;
             });
             document.getElementById('vtsBody').innerHTML = html;
         }
 
         function displayHaulingPlan() {
-            if (!hData.length || !aData.length) return alert("Upload files first.");
+            if (!hData.length || !aData.length) return alert("Upload files.");
             const andonMap = new Map();
             aData.forEach(r => { if(r.csnumber) andonMap.set(r.csnumber.trim().toUpperCase(), r); });
             document.getElementById('displayArea').style.display = "block";
@@ -156,24 +152,25 @@
                 "INSPECTED (AD)": andonMap.get(String(row['C/S No.']||"").trim().toUpperCase())?.inspected_by || ""
             }));
 
-            const thead = document.getElementById('displayHead');
-            const tbody = document.getElementById('displayBody');
-            
             let headHtml = "<tr>";
             columnsToShow.forEach((col, idx) => {
                 let uniqueVals = [...new Set(mergedData.map(item => String(item[col] || "").trim()))].sort();
                 headHtml += `<th>${col}<div class="filter-container">
-                    <div class="dropdown-button" onclick="toggleDropdown(${idx})">Filter...</div>
+                    <div class="dropdown-button" onclick="toggleDropdown(${idx})">Filter</div>
                     <div id="drop-${idx}" class="dropdown-content">
-                        <label><input type="checkbox" onchange="toggleAll(${idx}, this)"> (Select All)</label>
+                        <label><input type="checkbox" onchange="toggleAll(${idx}, this)"> (All)</label>
                         <label><input type="checkbox" value="BLANK" onchange="applyFilter()"> (Blanks)</label>
-                        ${uniqueVals.filter(v=>v!=="").map(v=>`<label><input type="checkbox" value="${v}" onchange="applyFilter()"> ${v}</label>`).join('')}
+                        ${uniqueVals.filter(v=>v!=="").map(v=>`<label><input type="checkbox" value="${v}"> ${v}</label>`).join('')}
                     </div>
                 </div></th>`;
             });
-            thead.innerHTML = headHtml + "</tr>";
-            tbody.innerHTML = mergedData.map(row => `<tr>${columnsToShow.map(col => `<td class="${col.includes('(A')?'new-col':''}">${row[col]||""}</td>`).join('')}</tr>`).join('');
+            document.getElementById('displayHead').innerHTML = headHtml;
+            document.getElementById('displayBody').innerHTML = mergedData.map(row => `<tr>${columnsToShow.map(col => `<td class="${col.includes('(A')?'new-col':''}">${row[col]||""}</td>`).join('')}</tr>`).join('');
             
+            // Add individual change listeners for checkboxes
+            document.querySelectorAll('.dropdown-content input').forEach(input => {
+                input.addEventListener('change', applyFilter);
+            });
             updateCount();
         }
 
@@ -192,7 +189,7 @@
             const drops = document.querySelectorAll('.dropdown-content');
             const filters = Array.from(drops).map(d => {
                 const checked = Array.from(d.querySelectorAll('input:checked')).map(i => i.value);
-                return checked.length === 0 || checked.includes('on') ? null : checked;
+                return (checked.length === 0 || checked.includes('on')) ? null : checked;
             });
 
             let visibleCount = 0;
@@ -213,7 +210,7 @@
         function updateCount(visible) {
             const total = document.getElementById("displayBody").rows.length;
             const current = (visible === undefined) ? total : visible;
-            document.getElementById("rowCount").textContent = `Showing: ${current} / ${total} units`;
+            document.getElementById("rowCount").textContent = `${current} / ${total}`;
         }
 
         window.onclick = e => {
