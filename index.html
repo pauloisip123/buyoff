@@ -2,7 +2,7 @@
 <html lang="fil">
 <head>
     <meta charset="UTF-8">
-    <title>VTS Dashboard - Fit to Screen</title>
+    <title>VTS Dashboard - Black Font Fixed</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
@@ -15,35 +15,34 @@
         .btn-display { background: #4472c4; color: white; }
         .btn-hide { background: #6c757d; color: white; font-size: 10px; padding: 5px 10px; }
 
-        /* FIT TO SCREEN TABLE SETTINGS */
-        table { width: 100%; border-collapse: collapse; background: white; border: 1px solid #000; table-layout: fixed; } /* table-layout: fixed para sumunod sa width */
-        th { background-color: #333; color: white; padding: 5px 2px; border: 1px solid #000; position: sticky; top: 0; z-index: 10; font-size: 10px; word-wrap: break-word; }
-        td { border: 1px solid #000; padding: 4px 2px; text-align: center; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* DASHBOARD TABLE */
+        .dashboard-table { width: 100%; border-collapse: collapse; background: white; border: 2px solid #000; margin-bottom: 20px; }
+        .dashboard-table th { background-color: #333; color: white; padding: 10px; border: 1px solid #000; }
+        .dashboard-table td { border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; font-size: 13px; color: black; }
+        
+        /* BLACK FONT PARA SA MGA LOCATIONS */
+        .loc-header { background-color: #ffff00 !important; color: #000000 !important; font-weight: bold; }
+        .total-header { background-color: #ffc000 !important; color: #000000 !important; font-weight: bold; }
+
+        /* HAULING PLAN DETAILS - FIT TO SCREEN */
+        #haulingDisplayTable { width: 100%; border-collapse: collapse; background: white; border: 1px solid #000; table-layout: fixed; }
+        #haulingDisplayTable th { background-color: #333; color: white; padding: 5px 2px; border: 1px solid #000; font-size: 10px; word-wrap: break-word; }
+        #haulingDisplayTable td { border: 1px solid #000; padding: 4px 2px; text-align: center; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: black; }
 
         .filter-container { position: relative; margin-top: 3px; color: black; font-weight: normal; }
-        .dropdown-button { background: #fff; border: 1px solid #ccc; padding: 2px; width: 95%; cursor: pointer; text-align: left; font-size: 9px; display: block; margin: 0 auto; border-radius: 2px; }
+        .dropdown-button { background: #fff; border: 1px solid #ccc; padding: 2px; width: 92%; cursor: pointer; text-align: left; font-size: 9px; display: block; margin: 0 auto; border-radius: 2px; color: black; }
         .dropdown-content { display: none; position: absolute; background: #fff; border: 1px solid #333; width: 180px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 8px rgba(0,0,0,0.2); text-align: left; padding: 5px; }
-        .dropdown-content label { display: block; padding: 4px; cursor: pointer; font-size: 10px; border-bottom: 1px solid #f0f0f0; }
-        
-        .dashboard-table { table-layout: auto; margin-bottom: 20px; }
-        .dashboard-table td { font-weight: bold; font-size: 13px; padding: 8px; }
+        .dropdown-content label { display: block; padding: 4px; cursor: pointer; font-size: 10px; border-bottom: 1px solid #f0f0f0; color: black; }
         
         .display-container { width: 100%; overflow-x: hidden; background: white; border: 1px solid #ccc; max-height: 500px; }
         .title-sec { background: #4472c4; color: white; padding: 8px 15px; font-weight: bold; text-align: center; border: 1px solid #000; display: flex; justify-content: space-between; align-items: center; }
         .count-badge { background: #fff; color: #4472c4; padding: 1px 8px; border-radius: 8px; font-size: 11px; }
-        .new-col { background-color: #e2efda; font-weight: bold; }
+        .new-col { background-color: #e2efda !important; font-weight: bold; }
         
-        /* Column Width Allocations */
-        .col-cs { width: 7%; }
-        .col-desc { width: 15%; }
-        .col-color { width: 10%; }
-        .col-yard { width: 12%; }
-        .col-etd { width: 11%; }
-        .col-dest { width: 12%; }
-        .col-eta { width: 11%; }
-        .col-carrier { width: 8%; }
-        .col-prep { width: 6%; }
-        .col-insp { width: 8%; }
+        /* Column Widths */
+        .w-cs { width: 7%; } .w-desc { width: 15%; } .w-color { width: 10%; }
+        .w-yard { width: 12%; } .w-etd { width: 11%; } .w-dest { width: 12%; }
+        .w-eta { width: 11%; } .w-carrier { width: 8%; } .w-prep { width: 6%; } .w-insp { width: 8%; }
 
         .show { display: block; }
     </style>
@@ -63,13 +62,13 @@
     <table class="dashboard-table">
         <thead>
             <tr>
-                <th colspan="2">CATEGORY / STATUS</th>
-                <th style="background:#ffff00; color:000;">1K11 - Aratan</th>
-                <th style="background:#ffff00; color:000;">1K06 - Crosstown</th>
-                <th style="background:#ffff00; color:000;">1K07 - FilSyn</th>
-                <th style="background:#ffff00; color:000;">1K03 - LGICT</th>
-                <th style="background:#ffff00; color:000;">1K12 - Lawa</th>
-                <th style="background:#ffc000; color:000;">TOTAL</th>
+                <th colspan="2" style="color: white;">CATEGORY / STATUS</th>
+                <th class="loc-header">1K11 - Aratan</th>
+                <th class="loc-header">1K06 - Crosstown</th>
+                <th class="loc-header">1K07 - FilSyn</th>
+                <th class="loc-header">1K03 - LGICT</th>
+                <th class="loc-header">1K12 - Lawa</th>
+                <th class="total-header">TOTAL</th>
             </tr>
         </thead>
         <tbody id="vtsBody"></tbody>
@@ -77,15 +76,15 @@
 
     <div id="displayArea" style="display:none;">
         <div class="title-sec">
-            <div>DETAILS <span class="count-badge" id="rowCount">0 / 0</span></div>
+            <div>HAULING PLAN DETAILS <span class="count-badge" id="rowCount">0 / 0</span></div>
             <button class="btn-hide" onclick="hideHaulingPlan()">HIDE ▲</button>
         </div>
         <div class="display-container">
             <table id="haulingDisplayTable">
                 <colgroup>
-                    <col class="col-cs"><col class="col-desc"><col class="col-color">
-                    <col class="col-yard"><col class="col-etd"><col class="col-dest">
-                    <col class="col-eta"><col class="col-carrier"><col class="col-prep"><col class="col-insp">
+                    <col class="w-cs"><col class="w-desc"><col class="w-color">
+                    <col class="w-yard"><col class="w-etd"><col class="w-dest">
+                    <col class="w-eta"><col class="w-carrier"><col class="w-prep"><col class="w-insp">
                 </colgroup>
                 <thead id="displayHead"></thead>
                 <tbody id="displayBody"></tbody>
@@ -113,7 +112,7 @@
         function hideHaulingPlan() { document.getElementById('displayArea').style.display = "none"; }
 
         function updateDashboard() {
-            if (!hData.length || !aData.length) return alert("Upload files.");
+            if (!hData.length || !aData.length) return alert("Upload files first.");
             const andonMap = new Map();
             aData.forEach(r => { if(r.csnumber) andonMap.set(r.csnumber.trim().toUpperCase(), r); });
             const categories = ["RVL", "DSTC", "RPM", "WILL EX", "GSDC"];
@@ -131,11 +130,11 @@
                     p.push(plan); pr.push(prep); i.push(insp); v.push(plan-insp);
                 });
                 const sum = a => a.reduce((x,y)=>x+y,0);
-                html += `<tr style="background:white"><td>${cat}</td><td>PLAN</td>${p.map(n=>`<td>${n}</td>`).join('')}<td style="background:#ffc000">${sum(p)}</td></tr>`;
-                html += `<tr style="background:#e2efda"><td>PREP</td>${pr.map(n=>`<td>${n}</td>`).join('')}<td style="background:#ffc000">${sum(pr)}</td></tr>`;
-                html += `<tr style="background:#fff2cc"><td>INSP</td>${i.map(n=>`<td>${n}</td>`).join('')}<td style="background:#ffc000">${sum(i)}</td></tr>`;
-                html += `<tr style="background:#fce4d6;color:red"><td>VAR</td>${v.map(n=>`<td>${n}</td>`).join('')}<td style="background:#ffc000">${sum(v)}</td></tr>`;
-                html += `<tr><td colspan="8" style="background:black;height:1px"></td></tr>`;
+                html += `<tr><td>${cat}</td><td style="background:#eee">PLAN</td>${p.map(n=>`<td>${n}</td>`).join('')}<td class="total-header">${sum(p)}</td></tr>`;
+                html += `<tr style="background:#e2efda"><td></td><td style="color:#1e4620">PREPARED</td>${pr.map(n=>`<td>${n}</td>`).join('')}<td class="total-header">${sum(pr)}</td></tr>`;
+                html += `<tr style="background:#fff2cc"><td></td><td style="color:#856404">INSPECT</td>${i.map(n=>`<td>${n}</td>`).join('')}<td class="total-header">${sum(i)}</td></tr>`;
+                html += `<tr style="background:#fce4d6;color:red"><td></td><td>VAR</td>${v.map(n=>`<td>${n}</td>`).join('')}<td class="total-header">${sum(v)}</td></tr>`;
+                html += `<tr><td colspan="8" style="background:black;height:1px;padding:0;"></td></tr>`;
             });
             document.getElementById('vtsBody').innerHTML = html;
         }
@@ -158,19 +157,15 @@
                 headHtml += `<th>${col}<div class="filter-container">
                     <div class="dropdown-button" onclick="toggleDropdown(${idx})">Filter</div>
                     <div id="drop-${idx}" class="dropdown-content">
-                        <label><input type="checkbox" onchange="toggleAll(${idx}, this)"> (All)</label>
+                        <label><input type="checkbox" onchange="toggleAll(${idx}, this)"> (Select All)</label>
                         <label><input type="checkbox" value="BLANK" onchange="applyFilter()"> (Blanks)</label>
-                        ${uniqueVals.filter(v=>v!=="").map(v=>`<label><input type="checkbox" value="${v}"> ${v}</label>`).join('')}
+                        ${uniqueVals.filter(v=>v!=="").map(v=>`<label><input type="checkbox" value="${v}" onchange="applyFilter()"> ${v}</label>`).join('')}
                     </div>
                 </div></th>`;
             });
             document.getElementById('displayHead').innerHTML = headHtml;
             document.getElementById('displayBody').innerHTML = mergedData.map(row => `<tr>${columnsToShow.map(col => `<td class="${col.includes('(A')?'new-col':''}">${row[col]||""}</td>`).join('')}</tr>`).join('');
             
-            // Add individual change listeners for checkboxes
-            document.querySelectorAll('.dropdown-content input').forEach(input => {
-                input.addEventListener('change', applyFilter);
-            });
             updateCount();
         }
 
