@@ -2,7 +2,7 @@
 <html lang="fil">
 <head>
     <meta charset="UTF-8">
-    <title>VTS Dashboard - Multi-Andon Upload</title>
+    <title>VTS Dashboard - Searchable C/S No.</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
@@ -10,24 +10,21 @@
         .upload-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 15px; border-top: 5px solid #4472c4; }
         .upload-flex { display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; }
         
-        button { border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; transition: 0.3s; }
+        button { border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; }
         .btn-refresh { background: #28a745; color: white; }
         .btn-display { background: #4472c4; color: white; }
         .btn-hide { background: #6c757d; color: white; font-size: 10px; padding: 5px 10px; }
-        button:hover { opacity: 0.8; }
 
-        .file-status { font-size: 11px; color: #555; margin-top: 5px; font-style: italic; }
-
-        /* DASHBOARD TABLE STYLING */
+        /* DASHBOARD TABLE */
         .dashboard-table { width: 100%; border-collapse: collapse; background: white; border: 2px solid #000; margin-bottom: 20px; }
         .dashboard-table th { background-color: #333; color: white; padding: 10px; border: 1px solid #000; }
         .dashboard-table td { border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; font-size: 13px; color: black; }
         
-        .loc-header { background-color: #ffff00 !important; color: #000000 !important; font-weight: bold; }
-        .total-header { background-color: #ffc000 !important; color: #000000 !important; font-weight: bold; }
+        .loc-header { background-color: #ffff00 !important; color: #000 !important; }
+        .total-header { background-color: #ffc000 !important; color: #000 !important; }
         .var-row td { color: #ff0000 !important; }
 
-        /* HAULING PLAN DETAILS - FIT TO SCREEN */
+        /* DETAILS TABLE FIT TO SCREEN */
         #haulingDisplayTable { width: 100%; border-collapse: collapse; background: white; border: 1px solid #000; table-layout: fixed; }
         #haulingDisplayTable th { background-color: #333; color: white; padding: 5px 2px; border: 1px solid #000; font-size: 10px; word-wrap: break-word; }
         #haulingDisplayTable td { border: 1px solid #000; padding: 4px 2px; text-align: center; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: black; }
@@ -35,17 +32,20 @@
         .filter-container { position: relative; margin-top: 3px; }
         .dropdown-button { background: #fff; border: 1px solid #ccc; padding: 2px; width: 92%; cursor: pointer; font-size: 9px; display: block; margin: 0 auto; border-radius: 2px; color: black; }
         .dropdown-content { display: none; position: absolute; background: #fff; border: 1px solid #333; width: 180px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 8px rgba(0,0,0,0.2); text-align: left; padding: 5px; }
-        .dropdown-content label { display: block; padding: 4px; cursor: pointer; font-size: 10px; border-bottom: 1px solid #f0f0f0; color: black; }
+        
+        /* SEARCH BOX STYLE */
+        .search-box { width: 90%; padding: 2px; font-size: 10px; border: 1px solid #ccc; border-radius: 2px; display: block; margin: 0 auto; outline: none; }
         
         .display-container { width: 100%; overflow-x: hidden; background: white; border: 1px solid #ccc; max-height: 500px; }
         .title-sec { background: #4472c4; color: white; padding: 8px 15px; font-weight: bold; text-align: center; border: 1px solid #000; display: flex; justify-content: space-between; align-items: center; }
         .count-badge { background: #fff; color: #4472c4; padding: 1px 8px; border-radius: 8px; font-size: 11px; }
         .new-col { background-color: #e2efda !important; font-weight: bold; }
-        
-        .w-cs { width: 7%; } .w-desc { width: 15%; } .w-color { width: 10%; }
+
+        /* Column Widths */
+        .w-cs { width: 8%; } .w-desc { width: 14%; } .w-color { width: 10%; }
         .w-yard { width: 12%; } .w-etd { width: 11%; } .w-dest { width: 12%; }
         .w-eta { width: 11%; } .w-carrier { width: 8%; } .w-prep { width: 6%; } .w-insp { width: 8%; }
-
+        
         .show { display: block; }
     </style>
 </head>
@@ -53,15 +53,8 @@
 
     <div class="upload-card">
         <div class="upload-flex">
-            <div>
-                <strong>1. HAULING PLAN:</strong><br>
-                <input type="file" id="hInput" accept=".xlsx">
-            </div>
-            <div>
-                <strong>2. ANDON (Multiple Files):</strong><br>
-                <input type="file" id="aInput" accept=".csv" multiple>
-                <div id="andonFileCount" class="file-status">No files selected</div>
-            </div>
+            <div><strong>1. HAULING PLAN:</strong><br><input type="file" id="hInput" accept=".xlsx"></div>
+            <div><strong>2. ANDON (Multiple Files):</strong><br><input type="file" id="aInput" accept=".csv" multiple></div>
             <button class="btn-refresh" onclick="updateDashboard()">REFRESH</button>
             <button class="btn-display" onclick="displayHaulingPlan()">SHOW DETAILS</button>
         </div>
@@ -103,8 +96,8 @@
 
     <script>
         let hData = [], combinedAndonData = [];
+        const columnsToShow = ["C/S No.", "Model Description", "Exterior Color", "Vehicle Stockyard", "ETD MP", "DESTINATION", "ETA DEALER / POL", "CARRIER", "PREPARED (AC)", "INSPECTED (AD)"];
 
-        // 1. HAULING PLAN READER
         document.getElementById('hInput').addEventListener('change', e => {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -114,44 +107,25 @@
             reader.readAsArrayBuffer(e.target.files[0]);
         });
 
-        // 2. MULTI-ANDON READER (Dito pagsasamahin ang lahat ng files)
         document.getElementById('aInput').addEventListener('change', async function(e) {
-            const files = e.target.files;
-            document.getElementById('andonFileCount').textContent = `${files.length} files selected`;
             combinedAndonData = [];
-
-            for (let i = 0; i < files.length; i++) {
-                const fileData = await parseCSV(files[i]);
-                combinedAndonData = [...combinedAndonData, ...fileData];
-            }
-            console.log("Combined Andon Rows:", combinedAndonData.length);
-        });
-
-        function parseCSV(file) {
-            return new Promise((resolve) => {
-                Papa.parse(file, {
-                    header: true,
-                    skipEmptyLines: 'greedy',
-                    complete: (results) => resolve(results.data)
+            for (let file of e.target.files) {
+                const data = await new Promise(resolve => {
+                    Papa.parse(file, { header: true, skipEmptyLines: 'greedy', complete: r => resolve(r.data) });
                 });
-            });
-        }
+                combinedAndonData = [...combinedAndonData, ...data];
+            }
+        });
 
         function hideHaulingPlan() { document.getElementById('displayArea').style.display = "none"; }
 
         function updateDashboard() {
-            if (!hData.length || !combinedAndonData.length) return alert("Upload both Hauling Plan and at least one Andon file.");
-            
-            // Gumamit ng Map para mabilis ang lookup ng CS Number mula sa pinagsamang data
+            if (!hData.length || !combinedAndonData.length) return alert("Upload files first.");
             const andonMap = new Map();
-            combinedAndonData.forEach(r => { 
-                if(r.csnumber) andonMap.set(r.csnumber.trim().toUpperCase(), r); 
-            });
-            
+            combinedAndonData.forEach(r => { if(r.csnumber) andonMap.set(r.csnumber.trim().toUpperCase(), r); });
             const categories = ["RVL", "DSTC", "RPM", "WILL EX", "GSDC"];
             const mapping = [{hKey:"1K11"},{hKey:"1K06"},{hKey:"1K07"},{hKey:"1K03"},{hKey:"1K12"}];
             let html = "";
-            
             categories.forEach(cat => {
                 let p=[], pr=[], i=[], v=[];
                 mapping.forEach(loc => {
@@ -159,15 +133,11 @@
                     let plan=units.length, prep=0, insp=0;
                     units.forEach(u => {
                         const s = andonMap.get(String(u['C/S No.']||"").trim().toUpperCase());
-                        if(s){ 
-                            if(s.prepared==='Y') prep++; 
-                            if(s.inspected_by && s.inspected_by.toUpperCase()!=='NULL' && s.inspected_by !== "") insp++; 
-                        }
+                        if(s){ if(s.prepared==='Y') prep++; if(s.inspected_by && s.inspected_by.toUpperCase()!=='NULL' && s.inspected_by !== "") insp++; }
                     });
                     p.push(plan); pr.push(prep); i.push(insp); v.push(plan-insp);
                 });
                 const sum = a => a.reduce((x,y)=>x+y,0);
-                
                 html += `<tr><td>${cat}</td><td style="background:#eee">PLAN</td>${p.map(n=>`<td>${n}</td>`).join('')}<td class="total-header">${sum(p)}</td></tr>`;
                 html += `<tr style="background:#e2efda"><td></td><td>PREPARED</td>${pr.map(n=>`<td>${n}</td>`).join('')}<td class="total-header">${sum(pr)}</td></tr>`;
                 html += `<tr style="background:#fff2cc"><td></td><td>INSPECT</td>${i.map(n=>`<td>${n}</td>`).join('')}<td class="total-header">${sum(i)}</td></tr>`;
@@ -178,13 +148,11 @@
         }
 
         function displayHaulingPlan() {
-            if (!hData.length || !combinedAndonData.length) return alert("Upload files first.");
+            if (!hData.length) return alert("Upload Hauling Plan.");
             const andonMap = new Map();
             combinedAndonData.forEach(r => { if(r.csnumber) andonMap.set(r.csnumber.trim().toUpperCase(), r); });
             document.getElementById('displayArea').style.display = "block";
 
-            const columnsToShow = ["C/S No.", "Model Description", "Exterior Color", "Vehicle Stockyard", "ETD MP", "DESTINATION", "ETA DEALER / POL", "CARRIER", "PREPARED (AC)", "INSPECTED (AD)"];
-            
             const mergedData = hData.map(row => ({
                 ...row,
                 "PREPARED (AC)": andonMap.get(String(row['C/S No.']||"").trim().toUpperCase())?.prepared === 'Y' ? 'Y' : 'N',
@@ -193,15 +161,23 @@
 
             let headHtml = "<tr>";
             columnsToShow.forEach((col, idx) => {
-                let uniqueVals = [...new Set(mergedData.map(item => String(item[col] || "").trim()))].sort();
-                headHtml += `<th>${col}<div class="filter-container">
-                    <div class="dropdown-button" onclick="toggleDropdown(${idx})">Filter</div>
-                    <div id="drop-${idx}" class="dropdown-content">
-                        <label><input type="checkbox" onchange="toggleAll(${idx}, this)"> (Select All)</label>
-                        <label><input type="checkbox" value="BLANK" onchange="applyFilter()"> (Blanks)</label>
-                        ${uniqueVals.filter(v=>v!=="").map(v=>`<label><input type="checkbox" value="${v}" onchange="applyFilter()"> ${v}</label>`).join('')}
-                    </div>
-                </div></th>`;
+                if (col === "C/S No.") {
+                    // SEARCH BOX PARA SA C/S NO.
+                    headHtml += `<th>${col}<div class="filter-container">
+                        <input type="text" class="search-box" placeholder="Search..." onkeyup="applyFilter()">
+                    </div></th>`;
+                } else {
+                    // DROPDOWN PARA SA IBANG COLUMNS
+                    let uniqueVals = [...new Set(mergedData.map(item => String(item[col] || "").trim()))].sort();
+                    headHtml += `<th>${col}<div class="filter-container">
+                        <div class="dropdown-button" onclick="toggleDropdown(${idx})">Filter</div>
+                        <div id="drop-${idx}" class="dropdown-content">
+                            <label><input type="checkbox" onchange="toggleAll(${idx}, this)"> (All)</label>
+                            <label><input type="checkbox" value="BLANK" onchange="applyFilter()"> (Blanks)</label>
+                            ${uniqueVals.filter(v=>v!=="").map(v=>`<label><input type="checkbox" value="${v}" onchange="applyFilter()"> ${v}</label>`).join('')}
+                        </div>
+                    </div></th>`;
+                }
             });
             document.getElementById('displayHead').innerHTML = headHtml;
             document.getElementById('displayBody').innerHTML = mergedData.map(row => `<tr>${columnsToShow.map(col => `<td class="${col.includes('(A')?'new-col':''}">${row[col]||""}</td>`).join('')}</tr>`).join('');
@@ -209,41 +185,60 @@
             updateCount();
         }
 
-        // --- FILTER LOGIC REMAINS THE SAME ---
         function toggleDropdown(idx) {
             document.querySelectorAll('.dropdown-content').forEach((d, i) => { if(i !== idx) d.classList.remove('show'); });
-            document.getElementById(`drop-${idx}`).classList.toggle('show');
+            const drop = document.getElementById(`drop-${idx}`);
+            if(drop) drop.classList.toggle('show');
         }
+
         function toggleAll(idx, master) {
             document.getElementById(`drop-${idx}`).querySelectorAll('input').forEach(i => i.checked = master.checked);
             applyFilter();
         }
+
         function applyFilter() {
             const rows = document.getElementById("displayBody").rows;
+            const searchInput = document.querySelector('.search-box').value.toUpperCase();
             const drops = document.querySelectorAll('.dropdown-content');
-            const filters = Array.from(drops).map(d => {
-                const checked = Array.from(d.querySelectorAll('input:checked')).map(i => i.value);
+            
+            // Get checked values from all dropdowns
+            const filters = Array.from(document.querySelectorAll('th')).map((th, idx) => {
+                const drop = document.getElementById(`drop-${idx}`);
+                if (!drop) return null; // Para sa C/S No column na walang dropdown
+                const checked = Array.from(drop.querySelectorAll('input:checked')).map(i => i.value);
                 return (checked.length === 0 || checked.includes('on')) ? null : checked;
             });
+
             let visibleCount = 0;
             for (let i = 0; i < rows.length; i++) {
                 let isVisible = true;
-                for (let j = 0; j < filters.length; j++) {
-                    if (filters[j]) {
-                        let val = rows[i].cells[j].textContent.trim() || "BLANK";
-                        if (!filters[j].includes(val)) { isVisible = false; break; }
+                
+                // 1. Check Search Box (C/S No - Column 0)
+                const csValue = rows[i].cells[0].textContent.toUpperCase();
+                if (csValue.indexOf(searchInput) === -1) isVisible = false;
+
+                // 2. Check other dropdown filters
+                if (isVisible) {
+                    for (let j = 1; j < filters.length; j++) {
+                        if (filters[j]) {
+                            let val = rows[i].cells[j].textContent.trim() || "BLANK";
+                            if (!filters[j].includes(val)) { isVisible = false; break; }
+                        }
                     }
                 }
+
                 rows[i].style.display = isVisible ? "" : "none";
                 if(isVisible) visibleCount++;
             }
             updateCount(visibleCount);
         }
+
         function updateCount(visible) {
             const total = document.getElementById("displayBody").rows.length;
             const current = (visible === undefined) ? total : visible;
             document.getElementById("rowCount").textContent = `${current} / ${total}`;
         }
+
         window.onclick = e => {
             if (!e.target.matches('.dropdown-button') && !e.target.closest('.dropdown-content')) {
                 document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show'));
