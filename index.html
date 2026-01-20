@@ -2,99 +2,135 @@
 <html lang="fil">
 <head>
     <meta charset="UTF-8">
-    <title>VTS Dashboard - Search & Dropdown Mix</title>
+    <title>VTS Dashboard - Secure Access</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
+        /* LOGIN OVERLAY STYLE */
+        #loginOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #2c3e50; display: flex; justify-content: center; align-items: center;
+            z-index: 9999; color: white; flex-direction: column;
+        }
+        .login-box {
+            background: white; padding: 30px; border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; color: #333;
+        }
+        .login-box h2 { margin-top: 0; color: #4472c4; }
+        .login-box input {
+            width: 100%; padding: 10px; margin: 15px 0;
+            border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
+        }
+        .btn-login {
+            background: #4472c4; color: white; border: none; padding: 10px 20px;
+            border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%;
+        }
+
+        /* DATING STYLES MO */
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 10px; margin: 0; }
         .upload-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 15px; border-top: 5px solid #4472c4; }
         .upload-flex { display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; }
-        
         button { border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; }
         .btn-refresh { background: #28a745; color: white; }
         .btn-display { background: #4472c4; color: white; }
         .btn-hide { background: #6c757d; color: white; font-size: 10px; padding: 5px 10px; }
-
-        /* DASHBOARD TABLE */
         .dashboard-table { width: 100%; border-collapse: collapse; background: white; border: 2px solid #000; margin-bottom: 20px; }
         .dashboard-table th { background-color: #333; color: white; padding: 10px; border: 1px solid #000; }
         .dashboard-table td { border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; font-size: 13px; color: black; }
-        
         .loc-header { background-color: #ffff00 !important; color: #000 !important; }
         .total-header { background-color: #ffc000 !important; color: #000 !important; }
         .var-row td { color: #ff0000 !important; }
-
-        /* DETAILS TABLE - FIT TO WIDTH */
         #haulingDisplayTable { width: 100%; border-collapse: collapse; background: white; border: 1px solid #000; table-layout: fixed; }
         #haulingDisplayTable th { background-color: #333; color: white; padding: 5px 2px; border: 1px solid #000; font-size: 10px; word-wrap: break-word; }
         #haulingDisplayTable td { border: 1px solid #000; padding: 4px 2px; text-align: center; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: black; }
-
         .filter-container { position: relative; margin-top: 3px; }
         .search-box { width: 90%; padding: 2px; font-size: 10px; border: 1px solid #ccc; border-radius: 2px; display: block; margin: 0 auto; outline: none; }
-        
         .dropdown-button { background: #fff; border: 1px solid #ccc; padding: 2px; width: 92%; cursor: pointer; font-size: 9px; display: block; margin: 0 auto; border-radius: 2px; color: black; text-align: left; }
         .dropdown-content { display: none; position: absolute; background: #fff; border: 1px solid #333; width: 180px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 8px rgba(0,0,0,0.2); text-align: left; padding: 5px; }
         .dropdown-content label { display: block; padding: 4px; cursor: pointer; font-size: 10px; border-bottom: 1px solid #f0f0f0; color: black; }
-        
         .display-container { width: 100%; overflow-x: hidden; background: white; border: 1px solid #ccc; max-height: 500px; }
         .title-sec { background: #4472c4; color: white; padding: 8px 15px; font-weight: bold; text-align: center; border: 1px solid #000; display: flex; justify-content: space-between; align-items: center; }
         .count-badge { background: #fff; color: #4472c4; padding: 1px 8px; border-radius: 8px; font-size: 11px; }
         .new-col { background-color: #e2efda !important; font-weight: bold; }
-
-        /* Column Widths */
         .w-cs { width: 8%; } .w-desc { width: 14%; } .w-color { width: 10%; }
         .w-yard { width: 12%; } .w-etd { width: 11%; } .w-dest { width: 12%; }
         .w-eta { width: 11%; } .w-carrier { width: 8%; } .w-prep { width: 6%; } .w-insp { width: 8%; }
-        
         .show { display: block; }
     </style>
 </head>
 <body>
 
-    <div class="upload-card">
-        <div class="upload-flex">
-            <div><strong>1. HAULING PLAN:</strong><br><input type="file" id="hInput" accept=".xlsx"></div>
-            <div><strong>2. ANDON (Multiple):</strong><br><input type="file" id="aInput" accept=".csv" multiple></div>
-            <button class="btn-refresh" onclick="updateDashboard()">REFRESH</button>
-            <button class="btn-display" onclick="displayHaulingPlan()">SHOW DETAILS</button>
+    <div id="loginOverlay">
+        <div class="login-box">
+            <h2>VTS Dashboard Login</h2>
+            <input type="password" id="passInput" placeholder="Enter Password" onkeypress="checkEnter(event)">
+            <button class="btn-login" onclick="validateLogin()">LOGIN</button>
+            <p id="errMsg" style="color: red; font-size: 12px; margin-top: 10px; display: none;">Incorrect password. Try again.</p>
         </div>
     </div>
 
-    <div class="title-sec">VTS MONITORING DASHBOARD</div>
-    <table class="dashboard-table">
-        <thead>
-            <tr>
-                <th colspan="2" style="color: white;">CATEGORY / STATUS</th>
-                <th class="loc-header">1K11 - Aratan</th>
-                <th class="loc-header">1K06 - Crosstown</th>
-                <th class="loc-header">1K07 - FilSyn</th>
-                <th class="loc-header">1K03 - LGICT</th>
-                <th class="loc-header">1K12 - Lawa</th>
-                <th class="total-header">TOTAL</th>
-            </tr>
-        </thead>
-        <tbody id="vtsBody"></tbody>
-    </table>
-
-    <div id="displayArea" style="display:none;">
-        <div class="title-sec">
-            <div>HAULING PLAN DETAILS <span class="count-badge" id="rowCount">0 / 0</span></div>
-            <button class="btn-hide" onclick="hideHaulingPlan()">HIDE ▲</button>
+    <div id="mainContent" style="display: none;">
+        <div class="upload-card">
+            <div class="upload-flex">
+                <div><strong>1. HAULING PLAN:</strong><br><input type="file" id="hInput" accept=".xlsx"></div>
+                <div><strong>2. ANDON (Multiple):</strong><br><input type="file" id="aInput" accept=".csv" multiple></div>
+                <button class="btn-refresh" onclick="updateDashboard()">REFRESH</button>
+                <button class="btn-display" onclick="displayHaulingPlan()">SHOW DETAILS</button>
+            </div>
         </div>
-        <div class="display-container">
-            <table id="haulingDisplayTable">
-                <colgroup>
-                    <col class="w-cs"><col class="w-desc"><col class="w-color">
-                    <col class="w-yard"><col class="w-etd"><col class="w-dest">
-                    <col class="w-eta"><col class="w-carrier"><col class="w-prep"><col class="w-insp">
-                </colgroup>
-                <thead id="displayHead"></thead>
-                <tbody id="displayBody"></tbody>
-            </table>
+
+        <div class="title-sec">VTS MONITORING DASHBOARD</div>
+        <table class="dashboard-table">
+            <thead>
+                <tr>
+                    <th colspan="2" style="color: white;">CATEGORY / STATUS</th>
+                    <th class="loc-header">1K11 - Aratan</th>
+                    <th class="loc-header">1K06 - Crosstown</th>
+                    <th class="loc-header">1K07 - FilSyn</th>
+                    <th class="loc-header">1K03 - LGICT</th>
+                    <th class="loc-header">1K12 - Lawa</th>
+                    <th class="total-header">TOTAL</th>
+                </tr>
+            </thead>
+            <tbody id="vtsBody"></tbody>
+        </table>
+
+        <div id="displayArea" style="display:none;">
+            <div class="title-sec">
+                <div>HAULING PLAN DETAILS <span class="count-badge" id="rowCount">0 / 0</span></div>
+                <button class="btn-hide" onclick="hideHaulingPlan()">HIDE ▲</button>
+            </div>
+            <div class="display-container">
+                <table id="haulingDisplayTable">
+                    <colgroup>
+                        <col class="w-cs"><col class="w-desc"><col class="w-color">
+                        <col class="w-yard"><col class="w-etd"><col class="w-dest">
+                        <col class="w-eta"><col class="w-carrier"><col class="w-prep"><col class="w-insp">
+                    </colgroup>
+                    <thead id="displayHead"></thead>
+                    <tbody id="displayBody"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     <script>
+        // LOGIN LOGIC
+        function validateLogin() {
+            const pass = document.getElementById('passInput').value;
+            if (pass === "Ems@pau123") {
+                document.getElementById('loginOverlay').style.display = "none";
+                document.getElementById('mainContent').style.display = "block";
+            } else {
+                document.getElementById('errMsg').style.display = "block";
+            }
+        }
+
+        function checkEnter(e) {
+            if (e.key === "Enter") validateLogin();
+        }
+
+        // DATING LOGIC MO
         let hData = [], combinedAndonData = [];
         const columnsToShow = ["C/S No.", "Model Description", "Exterior Color", "Vehicle Stockyard", "ETD MP", "DESTINATION", "ETA DEALER / POL", "CARRIER", "PREPARED (AC)", "INSPECTED (AD)"];
 
@@ -150,37 +186,51 @@
             const andonMap = new Map();
             combinedAndonData.forEach(r => { if(r.csnumber) andonMap.set(r.csnumber.trim().toUpperCase(), r); });
             document.getElementById('displayArea').style.display = "block";
-
             const mergedData = hData.map(row => ({
                 ...row,
                 "PREPARED (AC)": andonMap.get(String(row['C/S No.']||"").trim().toUpperCase())?.prepared === 'Y' ? 'Y' : 'N',
                 "INSPECTED (AD)": andonMap.get(String(row['C/S No.']||"").trim().toUpperCase())?.inspected_by || ""
             }));
-
             let headHtml = "<tr>";
             columnsToShow.forEach((col, idx) => {
                 if (col === "C/S No.") {
-                    // C/S NO = SEARCH BOX ONLY
-                    headHtml += `<th>${col}<div class="filter-container">
-                        <input type="text" id="csSearch" class="search-box" placeholder="Search C/S..." onkeyup="applyFilter()">
-                    </div></th>`;
+                    headHtml += `<th>${col}<div class="filter-container"><input type="text" id="csSearch" class="search-box" placeholder="Search C/S..." onkeyup="applyFilter()"></div></th>`;
                 } else {
-                    // OTHERS = DROPDOWN CHECKLIST
                     let uniqueVals = [...new Set(mergedData.map(item => String(item[col] || "").trim()))].sort();
-                    headHtml += `<th>${col}<div class="filter-container">
-                        <div class="dropdown-button" onclick="toggleDropdown(${idx})">Filter ▼</div>
-                        <div id="drop-${idx}" class="dropdown-content">
-                            <label><input type="checkbox" onchange="toggleAll(${idx}, this)"> (All)</label>
-                            <label><input type="checkbox" value="BLANK" onchange="applyFilter()"> (Blanks)</label>
-                            ${uniqueVals.filter(v=>v!=="").map(v=>`<label><input type="checkbox" value="${v}" onchange="applyFilter()"> ${v}</label>`).join('')}
-                        </div>
-                    </div></th>`;
+                    headHtml += `<th>${col}<div class="filter-container"><div class="dropdown-button" onclick="toggleDropdown(${idx})">Filter ▼</div><div id="drop-${idx}" class="dropdown-content"><label><input type="checkbox" onchange="toggleAll(${idx}, this)"> (All)</label><label><input type="checkbox" value="BLANK" onchange="applyFilter()"> (Blanks)</label>${uniqueVals.filter(v=>v!=="").map(v=>`<label><input type="checkbox" value="${v}" onchange="applyFilter()"> ${v}</label>`).join('')}</div></div></th>`;
                 }
             });
             document.getElementById('displayHead').innerHTML = headHtml;
             document.getElementById('displayBody').innerHTML = mergedData.map(row => `<tr>${columnsToShow.map(col => `<td class="${col.includes('(A')?'new-col':''}">${row[col]||""}</td>`).join('')}</tr>`).join('');
-            
             updateCount();
+        }
+
+        function applyFilter() {
+            const rows = document.getElementById("displayBody").rows;
+            const csSearchVal = document.getElementById('csSearch').value.toUpperCase();
+            const activeFilters = {};
+            columnsToShow.forEach((col, idx) => {
+                const drop = document.getElementById(`drop-${idx}`);
+                if (drop) {
+                    const checked = Array.from(drop.querySelectorAll('input:checked')).map(i => i.value).filter(v => v !== "on");
+                    if (checked.length > 0) activeFilters[idx] = checked;
+                }
+            });
+            let visibleCount = 0;
+            for (let i = 0; i < rows.length; i++) {
+                let showRow = true;
+                const csCellValue = rows[i].cells[0].textContent.toUpperCase();
+                if (csSearchVal && !csCellValue.includes(csSearchVal)) showRow = false;
+                if (showRow) {
+                    for (let colIdx in activeFilters) {
+                        const cellText = rows[i].cells[colIdx].textContent.trim() || "BLANK";
+                        if (!activeFilters[colIdx].includes(cellText)) { showRow = false; break; }
+                    }
+                }
+                rows[i].style.display = showRow ? "" : "none";
+                if (showRow) visibleCount++;
+            }
+            updateCount(visibleCount);
         }
 
         function toggleDropdown(idx) {
@@ -188,68 +238,17 @@
             const drop = document.getElementById(`drop-${idx}`);
             if(drop) drop.classList.toggle('show');
         }
-
         function toggleAll(idx, master) {
             document.getElementById(`drop-${idx}`).querySelectorAll('input').forEach(i => i.checked = master.checked);
             applyFilter();
         }
-
-        function applyFilter() {
-            const rows = document.getElementById("displayBody").rows;
-            const csSearchVal = document.getElementById('csSearch').value.toUpperCase();
-            
-            // Collect selected filters from all dropdowns
-            const activeFilters = {};
-            columnsToShow.forEach((col, idx) => {
-                const drop = document.getElementById(`drop-${idx}`);
-                if (drop) {
-                    const checked = Array.from(drop.querySelectorAll('input:checked'))
-                                         .map(i => i.value)
-                                         .filter(v => v !== "on"); // ignore 'on' from 'All' checkbox
-                    if (checked.length > 0) activeFilters[idx] = checked;
-                }
-            });
-
-            let visibleCount = 0;
-            for (let i = 0; i < rows.length; i++) {
-                let showRow = true;
-
-                // 1. Check C/S No Search (Column 0)
-                const csCellValue = rows[i].cells[0].textContent.toUpperCase();
-                if (csSearchVal && !csCellValue.includes(csSearchVal)) {
-                    showRow = false;
-                }
-
-                // 2. Check all other Dropdown Filters
-                if (showRow) {
-                    for (let colIdx in activeFilters) {
-                        const cellText = rows[i].cells[colIdx].textContent.trim() || "BLANK";
-                        if (!activeFilters[colIdx].includes(cellText)) {
-                            showRow = false;
-                            break;
-                        }
-                    }
-                }
-
-                rows[i].style.display = showRow ? "" : "none";
-                if (showRow) visibleCount++;
-            }
-            updateCount(visibleCount);
-        }
-
         function updateCount(visible) {
             const total = document.getElementById("displayBody").rows.length;
             const current = (visible === undefined) ? total : visible;
             document.getElementById("rowCount").textContent = `${current} / ${total}`;
         }
-
         function hideHaulingPlan() { document.getElementById('displayArea').style.display = "none"; }
-
-        window.onclick = e => {
-            if (!e.target.matches('.dropdown-button') && !e.target.closest('.dropdown-content')) {
-                document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show'));
-            }
-        }
+        window.onclick = e => { if (!e.target.matches('.dropdown-button') && !e.target.closest('.dropdown-content')) document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show')); }
     </script>
 </body>
 </html>
