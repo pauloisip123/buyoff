@@ -2,305 +2,250 @@
 <html lang="fil">
 <head>
     <meta charset="UTF-8">
-    <title>VTS Dashboard - Dropdown Filters & Tally</title>
+    <title>VTS Dashboard - VAR Updated</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
-        /* LOGIN & BASIC STYLES */
+        body { font-family: Arial, sans-serif; background-color: #f0f2f5; margin: 0; padding: 10px; }
+        
+        /* LOGIN */
         #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; display: flex; justify-content: center; align-items: center; z-index: 9999; color: white; flex-direction: column; }
-        .login-box { background: white; padding: 30px; border-radius: 10px; text-align: center; color: #333; }
-        .login-box input { width: 100%; padding: 10px; margin: 15px 0; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box; }
-        
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 10px; margin: 0; }
-        .upload-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 15px; border-top: 5px solid #4472c4; }
-        .upload-flex { display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; }
-        
-        button { border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; text-transform: uppercase; }
+        .login-box { background: white; padding: 25px; border-radius: 5px; text-align: center; color: #333; }
+        .login-box input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; box-sizing: border-box; }
+
+        /* HEADER & UPLOAD */
+        .upload-section { background: white; padding: 15px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); margin-bottom: 10px; display: flex; align-items: center; gap: 20px; }
+        .upload-group { font-size: 13px; font-weight: bold; }
+        button { border: none; padding: 8px 15px; border-radius: 3px; cursor: pointer; font-weight: bold; font-size: 11px; }
         .btn-refresh { background: #28a745; color: white; }
         .btn-display { background: #4472c4; color: white; }
-        .btn-export { background: #17a2b8; color: white; }
 
-        /* MAIN DASHBOARD TABLE */
-        .dashboard-container { max-height: 450px; overflow-y: auto; border: 2px solid #000; margin-bottom: 20px; }
-        .dashboard-table { width: 100%; border-collapse: collapse; background: white; }
-        .dashboard-table thead th { position: sticky; top: 0; z-index: 20; background-color: #333; color: white; padding: 10px; border: 1px solid #000; }
-        .dashboard-table td { border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; font-size: 13px; color: black; }
+        /* BLUE TITLE BAR */
+        .vts-title-bar { background-color: #4472c4; color: white; padding: 8px 15px; font-weight: bold; font-size: 14px; border: 1px solid #2f5597; }
 
-        .loc-header { background-color: #ffff00 !important; color: #000 !important; font-weight: 900; }
-        .total-header { background-color: #ffc000 !important; color: #000 !important; }
-        .header-stat { display: block; font-size: 10px; font-weight: normal; margin-top: 4px; }
-        .tally-ok { color: #008000; font-weight: bold; } /* Green */
-        .tally-no { color: #d9534f; font-weight: bold; } /* Red */
+        /* DASHBOARD TABLE */
+        .table-container { overflow-x: auto; background: white; border: 1px solid #000; margin-bottom: 15px; }
+        .main-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .main-table th, .main-table td { border: 1px solid #000; padding: 8px; text-align: center; font-size: 12px; }
+        .cat-status-header { background-color: #333; color: white; width: 250px; }
+        .loc-header { background-color: #ffff00; color: #000; font-weight: bold; }
+        .total-header { background-color: #ffc000; color: #000; font-weight: bold; }
+        .stat-sub { display: block; font-size: 9px; font-weight: normal; }
 
-        /* DETAILS TABLE WITH DROPDOWNS */
-        .display-container { width: 100%; overflow-y: auto; background: white; border: 1px solid #ccc; max-height: 550px; }
-        #haulingDisplayTable { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        #haulingDisplayTable thead th { position: sticky; top: 0; z-index: 30; background-color: #333; color: white; padding: 10px 2px; border: 1px solid #000; font-size: 11px; vertical-align: top; }
+        /* VAR STYLE */
+        .var-row { background-color: #fce4d6; color: #ff0000; font-weight: bold; }
+
+        /* CLICKABLE STYLE */
+        .clickable { cursor: pointer; text-decoration: underline; }
+        .clickable:hover { background-color: rgba(0,0,0,0.05); }
+
+        /* DETAILS TABLE */
+        .details-container { overflow-y: auto; max-height: 500px; border: 1px solid #000; background: white; }
+        .details-table { width: 100%; border-collapse: collapse; }
+        .details-table thead th { position: sticky; top: 0; background-color: #333; color: white; padding: 8px 4px; border: 1px solid #000; font-size: 11px; z-index: 10; }
         
-        /* DROPDOWN STYLING */
-        .filter-wrapper { margin-top: 8px; position: relative; }
-        .dropdown-button { background: #fff; color: #333; border: 1px solid #ccc; padding: 4px; width: 92%; cursor: pointer; font-size: 10px; border-radius: 2px; text-align: left; position: relative; margin: 0 auto; display: block; }
-        .dropdown-button::after { content: '▼'; position: absolute; right: 5px; font-size: 8px; }
-        .dropdown-content { display: none; position: absolute; background: #fff; border: 1px solid #333; width: 200px; max-height: 300px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.3); text-align: left; padding: 8px; color: black; border-radius: 4px; }
-        .dropdown-content label { display: block; padding: 6px; cursor: pointer; font-size: 11px; border-bottom: 1px solid #eee; }
-        .dropdown-content label:hover { background: #f1f1f1; }
+        .filter-box { background: white; color: black; border: 1px solid #ccc; padding: 2px; width: 95%; cursor: pointer; font-size: 10px; margin-top: 5px; text-align: left; display: inline-block; position: relative; }
+        .dropdown-menu { display: none; position: absolute; background: white; border: 1px solid #333; width: 200px; max-height: 250px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 8px rgba(0,0,0,0.2); padding: 5px; color: black; font-weight: normal; }
+        .dropdown-menu label { display: block; padding: 4px; cursor: pointer; border-bottom: 1px solid #eee; }
         .show { display: block; }
 
-        .search-box { width: 92%; padding: 4px; font-size: 10px; border: 1px solid #ccc; margin: 0 auto; display: block; outline: none; }
-        .title-sec { background: #4472c4; color: white; padding: 10px 15px; font-weight: bold; text-align: center; display: flex; justify-content: space-between; align-items: center; border: 1px solid #000; }
-        
-        #haulingDisplayTable td { border: 1px solid #000; padding: 5px 2px; text-align: center; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: black; font-weight: 500; }
-        .clickable-cell { cursor: pointer; text-decoration: underline; }
-        .clickable-cell:hover { background-color: #f0f7ff; color: #4472c4; }
+        .details-table td { border: 1px solid #000; padding: 4px; text-align: center; font-size: 11px; white-space: nowrap; }
+        .na-text { color: red; font-weight: bold; }
+        .tally-green { color: green; font-weight: bold; }
+        .tally-red { color: red; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div id="loginOverlay">
         <div class="login-box">
-            <h2 style="margin-top:0;">VTS Dashboard Login</h2>
-            <input type="password" id="passInput" placeholder="Enter Password" onkeypress="if(event.key==='Enter')validateLogin()">
-            <button class="btn-display" onclick="validateLogin()" style="width:100%; padding:12px; margin-top:10px;">LOGIN</button>
+            <h3>VTS Dashboard Login</h3>
+            <input type="password" id="passInput" placeholder="Password" onkeypress="if(event.key==='Enter')login()">
+            <button class="btn-display" onclick="login()" style="width:100%">LOGIN</button>
         </div>
     </div>
 
-    <div id="mainContent" style="display: none;">
-        <div class="upload-card">
-            <div class="upload-flex">
-                <div><strong>1. HAULING PLAN:</strong><br><input type="file" id="hInput" accept=".xlsx"></div>
-                <div><strong>2. ANDON (Multiple):</strong><br><input type="file" id="aInput" accept=".csv" multiple></div>
-                <button class="btn-refresh" onclick="updateDashboard()">REFRESH</button>
-                <button class="btn-display" onclick="displayHaulingPlan()">SHOW DETAILS</button>
-            </div>
+    <div id="mainApp" style="display:none;">
+        <div class="upload-section">
+            <div class="upload-group">1. HAULING PLAN:<br><input type="file" id="hInput" accept=".xlsx"></div>
+            <div class="upload-group">2. ANDON (Multiple):<br><input type="file" id="aInput" accept=".csv" multiple></div>
+            <button class="btn-refresh" onclick="processData()">REFRESH</button>
+            <button class="btn-display" onclick="showDetails()">SHOW DETAILS</button>
         </div>
 
-        <div class="title-sec">VTS MONITORING DASHBOARD</div>
-        <div class="dashboard-container">
-            <table class="dashboard-table">
+        <div class="vts-title-bar">VTS MONITORING DASHBOARD</div>
+        <div class="table-container">
+            <table class="main-table">
                 <thead>
                     <tr>
-                        <th colspan="2">CATEGORY / STATUS</th>
-                        <th class="loc-header">1K11 - Aratan<span id="stat-1K11" class="header-stat"></span></th>
-                        <th class="loc-header">1K06 - Crosstown<span id="stat-1K06" class="header-stat"></span></th>
-                        <th class="loc-header">1K07 - FilSyn<span id="stat-1K07" class="header-stat"></span></th>
-                        <th class="loc-header">1K03 - LGICT<span id="stat-1K03" class="header-stat"></span></th>
-                        <th class="loc-header">1K12 - Lawa<span id="stat-1K12" class="header-stat"></span></th>
-                        <th class="total-header">TOTAL<span id="stat-TOTAL" class="header-stat"></span></th>
+                        <th colspan="2" class="cat-status-header">CATEGORY / STATUS</th>
+                        <th class="loc-header">1K11 - Aratan <span id="s-1K11" class="stat-sub"></span></th>
+                        <th class="loc-header">1K06 - Crosstown <span id="s-1K06" class="stat-sub"></span></th>
+                        <th class="loc-header">1K07 - FilSyn <span id="s-1K07" class="stat-sub"></span></th>
+                        <th class="loc-header">1K03 - LGICT <span id="s-1K03" class="stat-sub"></span></th>
+                        <th class="loc-header">1K12 - Lawa <span id="s-1K12" class="stat-sub"></span></th>
+                        <th class="total-header">TOTAL <span id="s-TOTAL" class="stat-sub"></span></th>
                     </tr>
                 </thead>
-                <tbody id="vtsBody"></tbody>
+                <tbody id="dashBody"></tbody>
             </table>
         </div>
 
-        <div id="displayArea" style="display:none;">
-            <div class="title-sec">
-                <div id="detailTitle">HAULING PLAN DETAILS</div>
-                <div>
-                    <span id="rowCount" style="background:white; color:#4472c4; padding:3px 10px; border-radius:12px; font-size:12px; font-weight:bold;">0 / 0</span>
-                    <button class="btn-export" style="background:#28a745; margin-left:10px;" onclick="exportDetails()">EXPORT EXCEL</button>
-                    <button onclick="document.getElementById('displayArea').style.display='none'" style="background:#6c757d; color:white; margin-left:5px;">HIDE ▲</button>
-                </div>
+        <div id="detailsArea" style="display:none;">
+            <div class="vts-title-bar" style="display:flex; justify-content:space-between;">
+                <span>HAULING PLAN DETAILS</span>
+                <span id="rowStats"></span>
             </div>
-            <div class="display-container">
-                <table id="haulingDisplayTable">
-                    <colgroup>
-                        <col style="width:8%"><col style="width:16%"><col style="width:10%">
-                        <col style="width:12%"><col style="width:10%"><col style="width:12%">
-                        <col style="width:10%"><col style="width:10%"><col style="width:6%"><col style="width:6%">
-                    </colgroup>
-                    <thead id="displayHead"></thead>
-                    <tbody id="displayBody"></tbody>
+            <div class="details-container">
+                <table class="details-table" id="detailsTable">
+                    <thead id="detailsHead"></thead>
+                    <tbody id="detailsBody"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
     <script>
-        function validateLogin() {
-            if (document.getElementById('passInput').value === "Ems@pau123") {
-                document.getElementById('loginOverlay').style.display = "none";
-                document.getElementById('mainContent').style.display = "block";
-            } else { alert("Incorrect Password"); }
-        }
+        function login() { if(document.getElementById('passInput').value === "Ems@pau123") { document.getElementById('loginOverlay').style.display='none'; document.getElementById('mainApp').style.display='block'; } }
 
-        let hData = [], combinedAndonData = [];
-        const columns = ["C/S No.", "Model Description", "Exterior Color", "Vehicle Stockyard", "ETD MP", "DESTINATION", "ETA DEALER / POL", "CARRIER", "PREPARED (AC)", "INSPECTED (AD)"];
+        let haulingData = [], andonData = [];
+        const cols = ["C/S No.", "Model Description", "Exterior Color", "Vehicle Stockyard", "ETD MP", "DESTINATION", "ETA DEALER / POL", "CARRIER", "PREPARED (AC)", "INSPECTED (AD)"];
 
         document.getElementById('hInput').addEventListener('change', e => {
             const reader = new FileReader();
-            reader.onload = e => {
-                const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array', cellDates:true});
-                hData = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {raw:false});
+            reader.onload = ev => {
+                const wb = XLSX.read(new Uint8Array(ev.target.result), {type:'array', cellDates:true});
+                haulingData = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {raw:false});
             };
             reader.readAsArrayBuffer(e.target.files[0]);
         });
 
         document.getElementById('aInput').addEventListener('change', async e => {
-            combinedAndonData = [];
+            andonData = [];
             for (let f of e.target.files) {
-                const d = await new Promise(res => Papa.parse(f, {header:true, skipEmptyLines: true, complete: r => res(r.data)}));
-                combinedAndonData = [...combinedAndonData, ...d];
+                const d = await new Promise(res => Papa.parse(f, {header:true, skipEmptyLines:true, complete: r => res(r.data)}));
+                andonData = [...andonData, ...d];
             }
         });
 
-        function updateDashboard() {
-            if (!hData.length) return alert("Please upload Hauling Plan first.");
-            const andonMap = new Map();
-            combinedAndonData.forEach(r => { if(r.csnumber) andonMap.set(r.csnumber.trim().toUpperCase(), r); });
-            
-            const cats = ["RVL", "DSTC", "RPM", "WILL EX", "GSDC"];
+        function processData() {
+            if(!haulingData.length) return alert("Upload Hauling Plan.");
+            const aMap = new Map();
+            andonData.forEach(r => { if(r.csnumber) aMap.set(r.csnumber.trim().toUpperCase(), r); });
+
             const locs = ["1K11", "1K06", "1K07", "1K03", "1K12"];
             
-            // Header Stats Tally Logic
             locs.forEach(l => {
-                const pUnits = hData.filter(u => String(u['Vehicle Stockyard']).includes(l));
-                const aCount = pUnits.filter(u => andonMap.has(String(u['C/S No.']).trim().toUpperCase())).length;
-                const pCount = pUnits.length;
-                const el = document.getElementById(`stat-${l}`);
-                el.innerText = `(Andon: ${aCount} / Plan: ${pCount})`; 
-                el.className = `header-stat ${aCount === pCount && pCount > 0 ? 'tally-ok' : 'tally-no'}`;
+                const p = haulingData.filter(u => String(u['Vehicle Stockyard']).includes(l)).length;
+                const a = haulingData.filter(u => String(u['Vehicle Stockyard']).includes(l) && aMap.has(String(u['C/S No.']).trim().toUpperCase())).length;
+                const el = document.getElementById(`s-${l}`);
+                el.innerText = `(${a}/${p})`; el.className = `stat-sub ${a===p && p>0 ? 'tally-green':'tally-red'}`;
             });
 
-            // Total Stat
-            const totalPlan = hData.length;
-            const totalAndon = hData.filter(u => andonMap.has(String(u['C/S No.']).trim().toUpperCase())).length;
-            const tEl = document.getElementById('stat-TOTAL');
-            tEl.innerText = `(${totalAndon} / ${totalPlan})`;
-            tEl.className = `header-stat ${totalAndon === totalPlan ? 'tally-ok' : 'tally-no'}`;
-
-            let html = "";
-            cats.forEach(cat => {
-                let p=[], pr=[], i=[], v=[];
+            const cats = ["RVL", "DSTC", "RPM", "WILL EX", "GSDC"];
+            let h = "";
+            cats.forEach(c => {
+                let p=[], pr=[], insp=[], vr=[];
                 locs.forEach(l => {
-                    const units = hData.filter(u => String(u['CARRIER']).toUpperCase().includes(cat) && String(u['Vehicle Stockyard']).includes(l));
-                    let prep=0, insp=0;
-                    units.forEach(u => {
-                        const s = andonMap.get(String(u['C/S No.']).trim().toUpperCase());
-                        if(s){ if(s.prepared==='Y') prep++; if(s.inspected_by && s.inspected_by.toUpperCase()!=='NULL' && s.inspected_by !== "") insp++; }
+                    const u = haulingData.filter(x => String(x['CARRIER']).toUpperCase().includes(c) && String(x['Vehicle Stockyard']).includes(l));
+                    p.push(u.length);
+                    let ctPr=0, ctIn=0;
+                    u.forEach(unit => {
+                        const m = aMap.get(String(unit['C/S No.']).trim().toUpperCase());
+                        if(m){ if(m.prepared==='Y') ctPr++; if(m.inspected_by && m.inspected_by!=='NULL') ctIn++; }
                     });
-                    p.push(units.length); pr.push(prep); i.push(insp); v.push(units.length-insp);
+                    pr.push(ctPr); insp.push(ctIn);
+                    vr.push(u.length - ctIn); // VAR = PLAN - INSP
                 });
-                const s = a => a.reduce((x,y)=>x+y,0);
-                html += `<tr><td>${cat}</td><td style="background:#eee">PLAN</td>${p.map((x,idx)=>`<td class="${x>0?'clickable-cell':''}" onclick="filterBy('PLAN','${cat}','${locs[idx]}',${x})">${x}</td>`).join('')}<td>${s(p)}</td></tr>`;
-                html += `<tr style="background:#e2efda"><td></td><td>PREPARED</td>${pr.map((x,idx)=>`<td class="${x>0?'clickable-cell':''}" onclick="filterBy('PREP','${cat}','${locs[idx]}',${x})">${x}</td>`).join('')}<td>${s(pr)}</td></tr>`;
-                html += `<tr style="background:#fff2cc"><td></td><td>INSPECT</td>${i.map((x,idx)=>`<td class="${x>0?'clickable-cell':''}" onclick="filterBy('INSP','${cat}','${locs[idx]}',${x})">${x}</td>`).join('')}<td>${s(i)}</td></tr>`;
-                html += `<tr style="background:#fce4d6;color:red"><td></td><td>VAR</td>${v.map((x,idx)=>`<td class="${x>0?'clickable-cell':''}" onclick="filterBy('VAR','${cat}','${locs[idx]}',${x})">${x}</td>`).join('')}<td>${s(v)}</td></tr>`;
-                html += `<tr style="background:black;height:1px"><td colspan="8"></td></tr>`;
-            });
-            document.getElementById('vtsBody').innerHTML = html;
-        }
-
-        function displayHaulingPlan() {
-            if (!hData.length) return alert("Upload Hauling Plan.");
-            const andonMap = new Map();
-            combinedAndonData.forEach(r => { if(r.csnumber) andonMap.set(r.csnumber.trim().toUpperCase(), r); });
-            
-            const merged = hData.map(r => ({
-                ...r,
-                "PREPARED (AC)": andonMap.get(String(r['C/S No.']).trim().toUpperCase())?.prepared || "N",
-                "INSPECTED (AD)": andonMap.get(String(r['C/S No.']).trim().toUpperCase())?.inspected_by || ""
-            }));
-
-            let hHtml = "<tr>";
-            columns.forEach((col, idx) => {
-                if (col === "C/S No.") {
-                    hHtml += `<th>${col}<br><input type="text" id="csSearch" class="search-box" onkeyup="runFilters()" placeholder="Search CS..."></th>`;
-                } else {
-                    const vals = [...new Set(merged.map(m => String(m[col]||"").trim()))].sort();
-                    hHtml += `<th>${col}<div class="filter-wrapper">
-                        <div class="dropdown-button" onclick="toggleDrop(${idx})">Filter ▼</div>
-                        <div id="drop-${idx}" class="dropdown-content">
-                            <label><input type="checkbox" checked onchange="checkAll(${idx}, this)"> (Select All)</label>
-                            <label><input type="checkbox" value="BLANK" checked onchange="runFilters()"> (Blanks)</label>
-                            ${vals.filter(v=>v!=="").map(v => `<label><input type="checkbox" value="${v}" checked onchange="runFilters()"> ${v}</label>`).join('')}
-                        </div>
-                    </div></th>`;
-                }
-            });
-            document.getElementById('displayHead').innerHTML = hHtml + "</tr>";
-            document.getElementById('displayBody').innerHTML = merged.map(r => `<tr>${columns.map(c => `<td>${r[c]||""}</td>`).join('')}</tr>`).join('');
-            document.getElementById('displayArea').style.display = "block";
-            updateCount();
-        }
-
-        function toggleDrop(idx) {
-            const current = document.getElementById(`drop-${idx}`);
-            const isOpen = current.classList.contains('show');
-            document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show'));
-            if(!isOpen) current.classList.add('show');
-        }
-
-        function checkAll(idx, master) {
-            document.getElementById(`drop-${idx}`).querySelectorAll('input').forEach(i => i.checked = master.checked);
-            runFilters();
-        }
-
-        function runFilters() {
-            const rows = document.getElementById("displayBody").rows;
-            const csValue = document.getElementById('csSearch').value.toUpperCase();
-            
-            const filters = {};
-            columns.forEach((col, idx) => {
-                const drop = document.getElementById(`drop-${idx}`);
-                if (drop) {
-                    const selected = Array.from(drop.querySelectorAll('input:checked')).map(i => i.value).filter(v => v !== "on");
-                    filters[idx] = selected;
-                }
-            });
-
-            let visible = 0;
-            for (let r of rows) {
-                let show = true;
-                if (csValue && !r.cells[0].innerText.toUpperCase().includes(csValue)) show = false;
+                const sum = arr => arr.reduce((a,b)=>a+b,0);
                 
-                if (show) {
-                    for (let colIdx in filters) {
-                        const val = r.cells[colIdx].innerText.trim() || "BLANK";
-                        if (!filters[colIdx].includes(val)) { show = false; break; }
-                    }
-                }
-                r.style.display = show ? "" : "none";
-                if (show) visible++;
-            }
-            updateCount(visible);
+                h += `<tr><td rowspan="4">${c}</td><td>PLAN</td>${p.map((x,i)=>`<td class="${x>0?'clickable':''}" onclick="filterDashboard('PLAN','${c}','${locs[i]}',${x})">${x}</td>`).join('')}<td class="total-header">${sum(p)}</td></tr>`;
+                h += `<tr style="background:#e2efda"><td>PREP</td>${pr.map((x,i)=>`<td class="${x>0?'clickable':''}" onclick="filterDashboard('PREP','${c}','${locs[i]}',${x})">${x}</td>`).join('')}<td class="total-header">${sum(pr)}</td></tr>`;
+                h += `<tr style="background:#fff2cc"><td>INSP</td>${insp.map((x,i)=>`<td class="${x>0?'clickable':''}" onclick="filterDashboard('INSP','${c}','${locs[i]}',${x})">${x}</td>`).join('')}<td class="total-header">${sum(insp)}</td></tr>`;
+                h += `<tr class="var-row"><td>VAR</td>${vr.map((x,i)=>`<td class="${x>0?'clickable':''}" onclick="filterDashboard('VAR','${c}','${locs[i]}',${x})">${x}</td>`).join('')}<td class="total-header">${sum(vr)}</td></tr>`;
+            });
+            document.getElementById('dashBody').innerHTML = h;
         }
 
-        function filterBy(type, cat, loc, val) {
-            if (val === 0) return;
-            displayHaulingPlan();
-            const rows = document.getElementById("displayBody").rows;
-            let visible = 0;
+        function filterDashboard(type, cat, loc, val) {
+            if(val === 0) return;
+            showDetails();
+            const rows = document.getElementById('detailsBody').rows;
+            let visibleCount = 0;
             for (let r of rows) {
                 const isCat = r.cells[7].innerText.toUpperCase().includes(cat);
                 const isLoc = r.cells[3].innerText.includes(loc);
                 let match = isCat && isLoc;
-                if (match) {
-                    if (type === 'PREP') match = r.cells[8].innerText === 'Y';
-                    if (type === 'INSP') match = r.cells[9].innerText !== "" && r.cells[9].innerText !== "NULL";
-                    if (type === 'VAR') match = r.cells[9].innerText === "" || r.cells[9].innerText === "NULL";
+                if(match) {
+                    if(type === 'PREP') match = r.cells[8].innerText === 'Y';
+                    if(type === 'INSP') match = r.cells[9].innerText !== "" && r.cells[9].innerText !== "NULL" && r.cells[9].innerText !== "n/a";
+                    if(type === 'VAR') match = r.cells[9].innerText === "" || r.cells[9].innerText === "NULL" || r.cells[9].innerText === "n/a";
                 }
                 r.style.display = match ? "" : "none";
-                if (match) visible++;
+                if(match) visibleCount++;
             }
-            document.getElementById('detailTitle').innerText = `${type} - ${cat} @ ${loc}`;
-            updateCount(visible);
+            document.getElementById('rowStats').innerText = `${visibleCount} / ${rows.length}`;
         }
 
-        function updateCount(v) {
-            const t = document.getElementById("displayBody").rows.length;
-            document.getElementById("rowCount").innerText = `${v === undefined ? t : v} / ${t}`;
+        function showDetails() {
+            const aMap = new Map();
+            andonData.forEach(r => { if(r.csnumber) aMap.set(r.csnumber.trim().toUpperCase(), r); });
+            const merged = haulingData.map(r => {
+                const cs = String(r['C/S No.']||"").trim().toUpperCase();
+                const m = aMap.get(cs);
+                return { ...r, "PREPARED (AC)": m ? (m.prepared || "N") : "n/a", "INSPECTED (AD)": m ? (m.inspected_by || "") : "" };
+            });
+
+            let head = "<tr>";
+            cols.forEach((col, i) => {
+                const unique = [...new Set(merged.map(x => String(x[col]||"").trim()))].sort();
+                head += `<th>${col}<br><div class="filter-box" onclick="toggleDrop(${i})">Filter ▼<div id="d-${i}" class="dropdown-menu" onclick="event.stopPropagation()">
+                    <input type="text" placeholder="Search..." onkeyup="searchFilter(${i}, this)" style="width:100%; box-sizing:border-box; margin-bottom:5px;">
+                    <label><input type="checkbox" checked onchange="checkAll(${i}, this)"> (All)</label>
+                    ${unique.map(v => `<label><input type="checkbox" value="${v||'BLANK'}" checked onchange="applyFilters()"> ${v||'(Blanks)'}</label>`).join('')}
+                </div></div></th>`;
+            });
+            document.getElementById('detailsHead').innerHTML = head + "</tr>";
+            document.getElementById('detailsBody').innerHTML = merged.map(r => `<tr>${cols.map(c => `<td class="${r[c]==='n/a'?'na-text':''}">${r[c]||""}</td>`).join('')}</tr>`).join('');
+            document.getElementById('detailsArea').style.display = 'block';
+            updateRowStats();
         }
 
-        function exportDetails() {
-            const rows = Array.from(document.getElementById("displayBody").rows).filter(r => r.style.display !== "none");
-            const data = [columns, ...rows.map(r => Array.from(r.cells).map(c => c.innerText))];
-            const ws = XLSX.utils.aoa_to_sheet(data);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "HaulingDetails");
-            XLSX.writeFile(wb, `VTS_Export_${new Date().getTime()}.xlsx`);
+        function toggleDrop(i) {
+            const d = document.getElementById(`d-${i}`);
+            const isShow = d.classList.contains('show');
+            document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+            if(!isShow) d.classList.add('show');
         }
 
-        window.onclick = e => { if (!e.target.matches('.dropdown-button') && !e.target.closest('.dropdown-content')) document.querySelectorAll('.dropdown-content').forEach(d => d.classList.remove('show')); }
+        function checkAll(i, m) { document.getElementById(`d-${i}`).querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = m.checked); applyFilters(); }
+        
+        function searchFilter(i, input) {
+            const val = input.value.toUpperCase();
+            document.getElementById(`d-${i}`).querySelectorAll('label').forEach(l => {
+                if(l.innerText !== "(All)") l.style.display = l.innerText.toUpperCase().includes(val) ? "" : "none";
+            });
+        }
+
+        function applyFilters() {
+            const rows = document.getElementById('detailsBody').rows;
+            const filters = cols.map((_, i) => Array.from(document.getElementById(`d-${i}`).querySelectorAll('input:checked')).map(c => c.value));
+            let count = 0;
+            for (let r of rows) {
+                let show = true;
+                for (let i=0; i<cols.length; i++) {
+                    const val = r.cells[i].innerText.trim() || "BLANK";
+                    if(!filters[i].includes(val)) { show = false; break; }
+                }
+                r.style.display = show ? "" : "none";
+                if(show) count++;
+            }
+            document.getElementById('rowStats').innerText = `${count} / ${rows.length}`;
+        }
+
+        function updateRowStats() { document.getElementById('rowStats').innerText = `${document.getElementById('detailsBody').rows.length} / ${document.getElementById('detailsBody').rows.length}`; }
+
+        window.onclick = e => { if(!e.target.matches('.filter-box')) document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show')); }
     </script>
 </body>
 </html>
