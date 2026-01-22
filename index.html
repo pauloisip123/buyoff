@@ -2,28 +2,20 @@
 <html lang="fil">
 <head>
     <meta charset="UTF-8">
-    <title>VTS Dashboard - CS Search Update</title>
+    <title>VTS Dashboard - Source File Tracking</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; background-color: #f0f2f5; margin: 0; padding: 10px; }
-        
-        /* LOGIN */
         #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; display: flex; justify-content: center; align-items: center; z-index: 9999; color: white; flex-direction: column; }
         .login-box { background: white; padding: 25px; border-radius: 5px; text-align: center; color: #333; }
         .login-box input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; box-sizing: border-box; }
-
-        /* HEADER & UPLOAD */
         .upload-section { background: white; padding: 15px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); margin-bottom: 10px; display: flex; align-items: center; gap: 20px; }
         .upload-group { font-size: 13px; font-weight: bold; }
         button { border: none; padding: 8px 15px; border-radius: 3px; cursor: pointer; font-weight: bold; font-size: 11px; }
         .btn-refresh { background: #28a745; color: white; }
         .btn-display { background: #4472c4; color: white; }
-
-        /* BLUE TITLE BAR */
         .vts-title-bar { background-color: #4472c4; color: white; padding: 8px 15px; font-weight: bold; font-size: 14px; border: 1px solid #2f5597; }
-
-        /* DASHBOARD TABLE */
         .table-container { overflow-x: auto; background: white; border: 1px solid #000; margin-bottom: 15px; }
         .main-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         .main-table th, .main-table td { border: 1px solid #000; padding: 8px; text-align: center; font-size: 12px; }
@@ -33,23 +25,19 @@
         .stat-sub { display: block; font-size: 9px; font-weight: normal; }
         .var-row { background-color: #fce4d6; color: #ff0000; font-weight: bold; }
         .clickable { cursor: pointer; text-decoration: underline; }
-
-        /* DETAILS TABLE */
         .details-container { overflow-y: auto; max-height: 500px; border: 1px solid #000; background: white; }
         .details-table { width: 100%; border-collapse: collapse; }
         .details-table thead th { position: sticky; top: 0; background-color: #333; color: white; padding: 10px 4px; border: 1px solid #000; font-size: 11px; z-index: 10; }
-        
-        /* FILTERS */
         .cs-search-input { width: 90%; padding: 4px; font-size: 10px; border: 1px solid #ccc; margin-top: 5px; outline: none; }
         .filter-box { background: white; color: black; border: 1px solid #ccc; padding: 2px; width: 95%; cursor: pointer; font-size: 10px; margin-top: 5px; text-align: left; display: inline-block; position: relative; }
         .dropdown-menu { display: none; position: absolute; background: white; border: 1px solid #333; width: 200px; max-height: 250px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 8px rgba(0,0,0,0.2); padding: 5px; color: black; font-weight: normal; }
         .dropdown-menu label { display: block; padding: 4px; cursor: pointer; border-bottom: 1px solid #eee; }
         .show { display: block; }
-
         .details-table td { border: 1px solid #000; padding: 4px; text-align: center; font-size: 11px; white-space: nowrap; }
         .na-text { color: red; font-weight: bold; }
         .tally-green { color: green; font-weight: bold; }
         .tally-red { color: red; font-weight: bold; }
+        .source-col { font-size: 9px !important; color: #555; max-width: 100px; overflow: hidden; text-overflow: ellipsis; }
     </style>
 </head>
 <body>
@@ -106,7 +94,8 @@
         function login() { if(document.getElementById('passInput').value === "Ems@pau123") { document.getElementById('loginOverlay').style.display='none'; document.getElementById('mainApp').style.display='block'; } }
 
         let haulingData = [], andonData = [];
-        const cols = ["C/S No.", "Model Description", "Exterior Color", "Vehicle Stockyard", "ETD MP", "DESTINATION", "ETA DEALER / POL", "CARRIER", "PREPARED (AC)", "INSPECTED (AD)"];
+        // Dagdag: "ANDON SOURCE" sa columns list
+        const cols = ["C/S No.", "Model Description", "Exterior Color", "Vehicle Stockyard", "ETD MP", "DESTINATION", "ETA DEALER / POL", "CARRIER", "PREPARED (AC)", "INSPECTED (AD)", "ANDON SOURCE"];
 
         document.getElementById('hInput').addEventListener('change', e => {
             const reader = new FileReader();
@@ -120,7 +109,11 @@
         document.getElementById('aInput').addEventListener('change', async e => {
             andonData = [];
             for (let f of e.target.files) {
-                const d = await new Promise(res => Papa.parse(f, {header:true, skipEmptyLines:true, complete: r => res(r.data)}));
+                const d = await new Promise(res => Papa.parse(f, {header:true, skipEmptyLines:true, complete: r => {
+                    // Dagdag: I-tag ang bawat row ng file name nito
+                    const rowsWithFile = r.data.map(row => ({ ...row, sourceFile: f.name }));
+                    res(rowsWithFile);
+                }}));
                 andonData = [...andonData, ...d];
             }
         });
@@ -165,7 +158,12 @@
             const merged = haulingData.map(r => {
                 const cs = String(r['C/S No.']||"").trim().toUpperCase();
                 const m = aMap.get(cs);
-                return { ...r, "PREPARED (AC)": m ? (m.prepared || "N") : "n/a", "INSPECTED (AD)": m ? (m.inspected_by || "") : "" };
+                return { 
+                    ...r, 
+                    "PREPARED (AC)": m ? (m.prepared || "N") : "n/a", 
+                    "INSPECTED (AD)": m ? (m.inspected_by || "") : "",
+                    "ANDON SOURCE": m ? m.sourceFile : "No Match" // I-display ang file name
+                };
             });
 
             let head = "<tr>";
@@ -182,7 +180,8 @@
                 }
             });
             document.getElementById('detailsHead').innerHTML = head + "</tr>";
-            document.getElementById('detailsBody').innerHTML = merged.map(r => `<tr>${cols.map(c => `<td class="${r[c]==='n/a'?'na-text':''}">${r[c]||""}</td>`).join('')}</tr>`).join('');
+            // In-apply ang source-col class sa huling column para maging maliit ang text
+            document.getElementById('detailsBody').innerHTML = merged.map(r => `<tr>${cols.map((c, idx) => `<td class="${r[c]==='n/a'?'na-text':''} ${idx === 10 ? 'source-col' : ''}">${r[idx === 10 ? "ANDON SOURCE" : c]||""}</td>`).join('')}</tr>`).join('');
             document.getElementById('detailsArea').style.display = 'block';
             updateRowStats();
         }
@@ -207,20 +206,15 @@
         function applyFilters() {
             const rows = document.getElementById('detailsBody').rows;
             const csSearchVal = document.getElementById('csSearchBox')?.value.toUpperCase() || "";
-            
             const dropdownFilters = {};
             cols.forEach((_, i) => {
                 const d = document.getElementById(`d-${i}`);
                 if(d) dropdownFilters[i] = Array.from(d.querySelectorAll('input:checked')).map(c => c.value);
             });
-
             let count = 0;
             for (let r of rows) {
                 let show = true;
-                // Check C/S No. Search Box
                 if(csSearchVal && !r.cells[0].innerText.toUpperCase().includes(csSearchVal)) show = false;
-                
-                // Check Dropdown Filters
                 if(show) {
                     for (let i in dropdownFilters) {
                         const cellVal = r.cells[i].innerText.trim() || "BLANK";
@@ -254,7 +248,6 @@
         }
 
         function updateRowStats() { document.getElementById('rowStats').innerText = `${document.getElementById('detailsBody').rows.length} / ${document.getElementById('detailsBody').rows.length}`; }
-
         window.onclick = e => { if(!e.target.matches('.filter-box')) document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show')); }
     </script>
 </body>
