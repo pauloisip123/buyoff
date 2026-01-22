@@ -2,7 +2,7 @@
 <html lang="fil">
 <head>
     <meta charset="UTF-8">
-    <title>VTS Dashboard - VAR Updated</title>
+    <title>VTS Dashboard - CS Search Update</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
@@ -31,19 +31,16 @@
         .loc-header { background-color: #ffff00; color: #000; font-weight: bold; }
         .total-header { background-color: #ffc000; color: #000; font-weight: bold; }
         .stat-sub { display: block; font-size: 9px; font-weight: normal; }
-
-        /* VAR STYLE */
         .var-row { background-color: #fce4d6; color: #ff0000; font-weight: bold; }
-
-        /* CLICKABLE STYLE */
         .clickable { cursor: pointer; text-decoration: underline; }
-        .clickable:hover { background-color: rgba(0,0,0,0.05); }
 
         /* DETAILS TABLE */
         .details-container { overflow-y: auto; max-height: 500px; border: 1px solid #000; background: white; }
         .details-table { width: 100%; border-collapse: collapse; }
-        .details-table thead th { position: sticky; top: 0; background-color: #333; color: white; padding: 8px 4px; border: 1px solid #000; font-size: 11px; z-index: 10; }
+        .details-table thead th { position: sticky; top: 0; background-color: #333; color: white; padding: 10px 4px; border: 1px solid #000; font-size: 11px; z-index: 10; }
         
+        /* FILTERS */
+        .cs-search-input { width: 90%; padding: 4px; font-size: 10px; border: 1px solid #ccc; margin-top: 5px; outline: none; }
         .filter-box { background: white; color: black; border: 1px solid #ccc; padding: 2px; width: 95%; cursor: pointer; font-size: 10px; margin-top: 5px; text-align: left; display: inline-block; position: relative; }
         .dropdown-menu { display: none; position: absolute; background: white; border: 1px solid #333; width: 200px; max-height: 250px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 8px rgba(0,0,0,0.2); padding: 5px; color: black; font-weight: normal; }
         .dropdown-menu label { display: block; padding: 4px; cursor: pointer; border-bottom: 1px solid #eee; }
@@ -132,16 +129,13 @@
             if(!haulingData.length) return alert("Upload Hauling Plan.");
             const aMap = new Map();
             andonData.forEach(r => { if(r.csnumber) aMap.set(r.csnumber.trim().toUpperCase(), r); });
-
             const locs = ["1K11", "1K06", "1K07", "1K03", "1K12"];
-            
             locs.forEach(l => {
                 const p = haulingData.filter(u => String(u['Vehicle Stockyard']).includes(l)).length;
                 const a = haulingData.filter(u => String(u['Vehicle Stockyard']).includes(l) && aMap.has(String(u['C/S No.']).trim().toUpperCase())).length;
                 const el = document.getElementById(`s-${l}`);
                 el.innerText = `(${a}/${p})`; el.className = `stat-sub ${a===p && p>0 ? 'tally-green':'tally-red'}`;
             });
-
             const cats = ["RVL", "DSTC", "RPM", "WILL EX", "GSDC"];
             let h = "";
             cats.forEach(c => {
@@ -154,17 +148,89 @@
                         const m = aMap.get(String(unit['C/S No.']).trim().toUpperCase());
                         if(m){ if(m.prepared==='Y') ctPr++; if(m.inspected_by && m.inspected_by!=='NULL') ctIn++; }
                     });
-                    pr.push(ctPr); insp.push(ctIn);
-                    vr.push(u.length - ctIn); // VAR = PLAN - INSP
+                    pr.push(ctPr); insp.push(ctIn); vr.push(u.length - ctIn);
                 });
                 const sum = arr => arr.reduce((a,b)=>a+b,0);
-                
-                h += `<tr><td rowspan="4">${c}</td><td>PLAN</td>${p.map((x,i)=>`<td class="${x>0?'clickable':''}" onclick="filterDashboard('PLAN','${c}','${locs[i]}',${x})">${x}</td>`).join('')}<td class="total-header">${sum(p)}</td></tr>`;
-                h += `<tr style="background:#e2efda"><td>PREP</td>${pr.map((x,i)=>`<td class="${x>0?'clickable':''}" onclick="filterDashboard('PREP','${c}','${locs[i]}',${x})">${x}</td>`).join('')}<td class="total-header">${sum(pr)}</td></tr>`;
-                h += `<tr style="background:#fff2cc"><td>INSP</td>${insp.map((x,i)=>`<td class="${x>0?'clickable':''}" onclick="filterDashboard('INSP','${c}','${locs[i]}',${x})">${x}</td>`).join('')}<td class="total-header">${sum(insp)}</td></tr>`;
-                h += `<tr class="var-row"><td>VAR</td>${vr.map((x,i)=>`<td class="${x>0?'clickable':''}" onclick="filterDashboard('VAR','${c}','${locs[i]}',${x})">${x}</td>`).join('')}<td class="total-header">${sum(vr)}</td></tr>`;
+                h += `<tr><td rowspan="4">${c}</td><td>PLAN</td>${p.map((x,i)=>`<td class="${x>0?'clickable':''}" onclick="filterDashboard('PLAN','${c}','${locs[i]}',${x})">${x}</td>`).join('')}<td>${sum(p)}</td></tr>`;
+                h += `<tr style="background:#e2efda"><td>PREP</td>${pr.map((x,i)=>`<td class="${x>0?'clickable':''}" onclick="filterDashboard('PREP','${c}','${locs[i]}',${x})">${x}</td>`).join('')}<td>${sum(pr)}</td></tr>`;
+                h += `<tr style="background:#fff2cc"><td>INSP</td>${insp.map((x,i)=>`<td class="${x>0?'clickable':''}" onclick="filterDashboard('INSP','${c}','${locs[i]}',${x})">${x}</td>`).join('')}<td>${sum(insp)}</td></tr>`;
+                h += `<tr class="var-row"><td>VAR</td>${vr.map((x,i)=>`<td class="${x>0?'clickable':''}" onclick="filterDashboard('VAR','${c}','${locs[i]}',${x})">${x}</td>`).join('')}<td>${sum(vr)}</td></tr>`;
             });
             document.getElementById('dashBody').innerHTML = h;
+        }
+
+        function showDetails() {
+            const aMap = new Map();
+            andonData.forEach(r => { if(r.csnumber) aMap.set(r.csnumber.trim().toUpperCase(), r); });
+            const merged = haulingData.map(r => {
+                const cs = String(r['C/S No.']||"").trim().toUpperCase();
+                const m = aMap.get(cs);
+                return { ...r, "PREPARED (AC)": m ? (m.prepared || "N") : "n/a", "INSPECTED (AD)": m ? (m.inspected_by || "") : "" };
+            });
+
+            let head = "<tr>";
+            cols.forEach((col, i) => {
+                if(col === "C/S No.") {
+                    head += `<th>${col}<br><input type="text" id="csSearchBox" class="cs-search-input" placeholder="Type C/S No..." onkeyup="applyFilters()"></th>`;
+                } else {
+                    const unique = [...new Set(merged.map(x => String(x[col]||"").trim()))].sort();
+                    head += `<th>${col}<br><div class="filter-box" onclick="toggleDrop(${i})">Filter ▼<div id="d-${i}" class="dropdown-menu" onclick="event.stopPropagation()">
+                        <input type="text" placeholder="Search..." onkeyup="searchFilter(${i}, this)" style="width:100%; box-sizing:border-box; margin-bottom:5px;">
+                        <label><input type="checkbox" checked onchange="checkAll(${i}, this)"> (All)</label>
+                        ${unique.map(v => `<label><input type="checkbox" value="${v||'BLANK'}" checked onchange="applyFilters()"> ${v||'(Blanks)'}</label>`).join('')}
+                    </div></div></th>`;
+                }
+            });
+            document.getElementById('detailsHead').innerHTML = head + "</tr>";
+            document.getElementById('detailsBody').innerHTML = merged.map(r => `<tr>${cols.map(c => `<td class="${r[c]==='n/a'?'na-text':''}">${r[c]||""}</td>`).join('')}</tr>`).join('');
+            document.getElementById('detailsArea').style.display = 'block';
+            updateRowStats();
+        }
+
+        function toggleDrop(i) {
+            const d = document.getElementById(`d-${i}`);
+            if(!d) return;
+            const isShow = d.classList.contains('show');
+            document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+            if(!isShow) d.classList.add('show');
+        }
+
+        function checkAll(i, m) { document.getElementById(`d-${i}`).querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = m.checked); applyFilters(); }
+        
+        function searchFilter(i, input) {
+            const val = input.value.toUpperCase();
+            document.getElementById(`d-${i}`).querySelectorAll('label').forEach(l => {
+                if(l.innerText !== "(All)") l.style.display = l.innerText.toUpperCase().includes(val) ? "" : "none";
+            });
+        }
+
+        function applyFilters() {
+            const rows = document.getElementById('detailsBody').rows;
+            const csSearchVal = document.getElementById('csSearchBox')?.value.toUpperCase() || "";
+            
+            const dropdownFilters = {};
+            cols.forEach((_, i) => {
+                const d = document.getElementById(`d-${i}`);
+                if(d) dropdownFilters[i] = Array.from(d.querySelectorAll('input:checked')).map(c => c.value);
+            });
+
+            let count = 0;
+            for (let r of rows) {
+                let show = true;
+                // Check C/S No. Search Box
+                if(csSearchVal && !r.cells[0].innerText.toUpperCase().includes(csSearchVal)) show = false;
+                
+                // Check Dropdown Filters
+                if(show) {
+                    for (let i in dropdownFilters) {
+                        const cellVal = r.cells[i].innerText.trim() || "BLANK";
+                        if(!dropdownFilters[i].includes(cellVal)) { show = false; break; }
+                    }
+                }
+                r.style.display = show ? "" : "none";
+                if(show) count++;
+            }
+            document.getElementById('rowStats').innerText = `${count} / ${rows.length}`;
         }
 
         function filterDashboard(type, cat, loc, val) {
@@ -185,62 +251,6 @@
                 if(match) visibleCount++;
             }
             document.getElementById('rowStats').innerText = `${visibleCount} / ${rows.length}`;
-        }
-
-        function showDetails() {
-            const aMap = new Map();
-            andonData.forEach(r => { if(r.csnumber) aMap.set(r.csnumber.trim().toUpperCase(), r); });
-            const merged = haulingData.map(r => {
-                const cs = String(r['C/S No.']||"").trim().toUpperCase();
-                const m = aMap.get(cs);
-                return { ...r, "PREPARED (AC)": m ? (m.prepared || "N") : "n/a", "INSPECTED (AD)": m ? (m.inspected_by || "") : "" };
-            });
-
-            let head = "<tr>";
-            cols.forEach((col, i) => {
-                const unique = [...new Set(merged.map(x => String(x[col]||"").trim()))].sort();
-                head += `<th>${col}<br><div class="filter-box" onclick="toggleDrop(${i})">Filter ▼<div id="d-${i}" class="dropdown-menu" onclick="event.stopPropagation()">
-                    <input type="text" placeholder="Search..." onkeyup="searchFilter(${i}, this)" style="width:100%; box-sizing:border-box; margin-bottom:5px;">
-                    <label><input type="checkbox" checked onchange="checkAll(${i}, this)"> (All)</label>
-                    ${unique.map(v => `<label><input type="checkbox" value="${v||'BLANK'}" checked onchange="applyFilters()"> ${v||'(Blanks)'}</label>`).join('')}
-                </div></div></th>`;
-            });
-            document.getElementById('detailsHead').innerHTML = head + "</tr>";
-            document.getElementById('detailsBody').innerHTML = merged.map(r => `<tr>${cols.map(c => `<td class="${r[c]==='n/a'?'na-text':''}">${r[c]||""}</td>`).join('')}</tr>`).join('');
-            document.getElementById('detailsArea').style.display = 'block';
-            updateRowStats();
-        }
-
-        function toggleDrop(i) {
-            const d = document.getElementById(`d-${i}`);
-            const isShow = d.classList.contains('show');
-            document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
-            if(!isShow) d.classList.add('show');
-        }
-
-        function checkAll(i, m) { document.getElementById(`d-${i}`).querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = m.checked); applyFilters(); }
-        
-        function searchFilter(i, input) {
-            const val = input.value.toUpperCase();
-            document.getElementById(`d-${i}`).querySelectorAll('label').forEach(l => {
-                if(l.innerText !== "(All)") l.style.display = l.innerText.toUpperCase().includes(val) ? "" : "none";
-            });
-        }
-
-        function applyFilters() {
-            const rows = document.getElementById('detailsBody').rows;
-            const filters = cols.map((_, i) => Array.from(document.getElementById(`d-${i}`).querySelectorAll('input:checked')).map(c => c.value));
-            let count = 0;
-            for (let r of rows) {
-                let show = true;
-                for (let i=0; i<cols.length; i++) {
-                    const val = r.cells[i].innerText.trim() || "BLANK";
-                    if(!filters[i].includes(val)) { show = false; break; }
-                }
-                r.style.display = show ? "" : "none";
-                if(show) count++;
-            }
-            document.getElementById('rowStats').innerText = `${count} / ${rows.length}`;
         }
 
         function updateRowStats() { document.getElementById('rowStats').innerText = `${document.getElementById('detailsBody').rows.length} / ${document.getElementById('detailsBody').rows.length}`; }
