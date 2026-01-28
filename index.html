@@ -15,6 +15,14 @@
         button { border: none; padding: 8px 15px; border-radius: 3px; cursor: pointer; font-weight: bold; font-size: 11px; }
         .btn-refresh { background: #28a745; color: white; }
         .btn-display { background: #4472c4; color: white; }
+        
+        /* Control Buttons */
+        .btn-export-filtered { background: #8e44ad; color: white; margin-left: 10px; }
+        .btn-export-all { background: #34495e; color: white; margin-left: 5px; }
+        .btn-clear { background: #dc3545; color: white; margin-left: 5px; } /* Red for Clear */
+        .btn-master-copy { background: #ffc107; color: #000; width: 90%; margin-top: 5px; border: 1px solid #d39e00; font-weight: bold; }
+        .btn-master-copy:hover { background: #e0a800; }
+
         .vts-title-bar { background-color: #4472c4; color: white; padding: 8px 15px; font-weight: bold; font-size: 14px; border: 1px solid #2f5597; }
         .table-container { overflow-x: auto; background: white; border: 1px solid #000; margin-bottom: 15px; }
         .main-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -35,8 +43,6 @@
         .show { display: block; }
         .details-table td { border: 1px solid #000; padding: 4px; text-align: center; font-size: 11px; white-space: nowrap; }
         .na-text { color: red; font-weight: bold; }
-        .tally-green { color: green; font-weight: bold; }
-        .tally-red { color: red; font-weight: bold; }
         .source-col { font-size: 9px !important; color: #555; max-width: 100px; overflow: hidden; text-overflow: ellipsis; }
     </style>
 </head>
@@ -77,9 +83,14 @@
         </div>
 
         <div id="detailsArea" style="display:none;">
-            <div class="vts-title-bar" style="display:flex; justify-content:space-between;">
+            <div class="vts-title-bar" style="display:flex; justify-content:space-between; align-items:center;">
                 <span>HAULING PLAN DETAILS</span>
-                <span id="rowStats"></span>
+                <div>
+                    <span id="rowStats"></span>
+                    <button class="btn-export-filtered" onclick="exportExcel(true)">EXPORT FILTERED</button>
+                    <button class="btn-export-all" onclick="exportExcel(false)">EXPORT ALL</button>
+                    <button class="btn-clear" onclick="clearAllFilters()">CLEAR FILTERS</button>
+                </div>
             </div>
             <div class="details-container">
                 <table class="details-table" id="detailsTable">
@@ -94,7 +105,6 @@
         function login() { if(document.getElementById('passInput').value === "Ems@pau123") { document.getElementById('loginOverlay').style.display='none'; document.getElementById('mainApp').style.display='block'; } }
 
         let haulingData = [], andonData = [];
-        // Dagdag: "ANDON SOURCE" sa columns list
         const cols = ["C/S No.", "Model Description", "Exterior Color", "Vehicle Stockyard", "ETD MP", "DESTINATION", "ETA DEALER / POL", "CARRIER", "PREPARED (AC)", "INSPECTED (AD)", "ANDON SOURCE"];
 
         document.getElementById('hInput').addEventListener('change', e => {
@@ -110,7 +120,6 @@
             andonData = [];
             for (let f of e.target.files) {
                 const d = await new Promise(res => Papa.parse(f, {header:true, skipEmptyLines:true, complete: r => {
-                    // Dagdag: I-tag ang bawat row ng file name nito
                     const rowsWithFile = r.data.map(row => ({ ...row, sourceFile: f.name }));
                     res(rowsWithFile);
                 }}));
@@ -152,6 +161,47 @@
             document.getElementById('dashBody').innerHTML = h;
         }
 
+        function copyFilteredCS(btn) {
+            const rows = Array.from(document.getElementById('detailsBody').rows);
+            const visibleCS = rows.filter(r => r.style.display !== "none")
+                .map(r => r.cells[0].innerText.trim())
+                .filter(text => text !== "");
+            if (visibleCS.length === 0) return alert("No visible data.");
+            navigator.clipboard.writeText(visibleCS.join("\n")).then(() => {
+                const oldText = btn.innerText;
+                btn.innerText = "COPIED " + visibleCS.length + " UNITS";
+                setTimeout(() => btn.innerText = oldText, 2000);
+            });
+        }
+
+        // New Feature: Clear All Filters
+        function clearAllFilters() {
+            // 1. Reset text search boxes
+            document.querySelectorAll('.cs-search-input, .dropdown-menu input[type="text"]').forEach(input => input.value = "");
+            // 2. Reset checkboxes to checked
+            document.querySelectorAll('.dropdown-menu input[type="checkbox"]').forEach(cb => cb.checked = true);
+            // 3. Reset dropdown labels display
+            document.querySelectorAll('.dropdown-menu label').forEach(lbl => lbl.style.display = "");
+            // 4. Show all table rows
+            const rows = document.getElementById('detailsBody').rows;
+            for (let r of rows) r.style.display = "";
+            updateRowStats();
+        }
+
+        function exportExcel(onlyFiltered) {
+            const rows = Array.from(document.getElementById('detailsBody').rows);
+            const exportData = [cols];
+            rows.forEach(r => {
+                if (!onlyFiltered || r.style.display !== "none") {
+                    exportData.push(Array.from(r.cells).map(td => td.innerText.trim()));
+                }
+            });
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "VTS_Data");
+            XLSX.writeFile(wb, onlyFiltered ? "VTS_Filtered.xlsx" : "VTS_Full.xlsx");
+        }
+
         function showDetails() {
             const aMap = new Map();
             andonData.forEach(r => { if(r.csnumber) aMap.set(r.csnumber.trim().toUpperCase(), r); });
@@ -162,14 +212,17 @@
                     ...r, 
                     "PREPARED (AC)": m ? (m.prepared || "N") : "n/a", 
                     "INSPECTED (AD)": m ? (m.inspected_by || "") : "",
-                    "ANDON SOURCE": m ? m.sourceFile : "No Match" // I-display ang file name
+                    "ANDON SOURCE": m ? m.sourceFile : "No Match"
                 };
             });
 
             let head = "<tr>";
             cols.forEach((col, i) => {
                 if(col === "C/S No.") {
-                    head += `<th>${col}<br><input type="text" id="csSearchBox" class="cs-search-input" placeholder="Type C/S No..." onkeyup="applyFilters()"></th>`;
+                    head += `<th>${col}<br>
+                        <input type="text" id="csSearchBox" class="cs-search-input" placeholder="Search..." onkeyup="applyFilters()"><br>
+                        <button class="btn-master-copy" onclick="copyFilteredCS(this)">COPY LIST</button>
+                    </th>`;
                 } else {
                     const unique = [...new Set(merged.map(x => String(x[col]||"").trim()))].sort();
                     head += `<th>${col}<br><div class="filter-box" onclick="toggleDrop(${i})">Filter ▼<div id="d-${i}" class="dropdown-menu" onclick="event.stopPropagation()">
@@ -180,29 +233,32 @@
                 }
             });
             document.getElementById('detailsHead').innerHTML = head + "</tr>";
-            // In-apply ang source-col class sa huling column para maging maliit ang text
-            document.getElementById('detailsBody').innerHTML = merged.map(r => `<tr>${cols.map((c, idx) => `<td class="${r[c]==='n/a'?'na-text':''} ${idx === 10 ? 'source-col' : ''}">${r[idx === 10 ? "ANDON SOURCE" : c]||""}</td>`).join('')}</tr>`).join('');
+
+            document.getElementById('detailsBody').innerHTML = merged.map(r => `<tr>
+                ${cols.map((c, idx) => {
+                    const val = r[idx === 10 ? "ANDON SOURCE" : c]||"";
+                    const css = (r[c] === 'n/a' ? 'na-text ' : '') + (idx === 10 ? 'source-col' : '');
+                    return `<td class="${css}">${val}</td>`;
+                }).join('')}
+            </tr>`).join('');
+
             document.getElementById('detailsArea').style.display = 'block';
             updateRowStats();
         }
 
         function toggleDrop(i) {
             const d = document.getElementById(`d-${i}`);
-            if(!d) return;
             const isShow = d.classList.contains('show');
             document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
             if(!isShow) d.classList.add('show');
         }
-
         function checkAll(i, m) { document.getElementById(`d-${i}`).querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = m.checked); applyFilters(); }
-        
         function searchFilter(i, input) {
             const val = input.value.toUpperCase();
             document.getElementById(`d-${i}`).querySelectorAll('label').forEach(l => {
                 if(l.innerText !== "(All)") l.style.display = l.innerText.toUpperCase().includes(val) ? "" : "none";
             });
         }
-
         function applyFilters() {
             const rows = document.getElementById('detailsBody').rows;
             const csSearchVal = document.getElementById('csSearchBox')?.value.toUpperCase() || "";
@@ -226,7 +282,6 @@
             }
             document.getElementById('rowStats').innerText = `${count} / ${rows.length}`;
         }
-
         function filterDashboard(type, cat, loc, val) {
             if(val === 0) return;
             showDetails();
@@ -246,7 +301,6 @@
             }
             document.getElementById('rowStats').innerText = `${visibleCount} / ${rows.length}`;
         }
-
         function updateRowStats() { document.getElementById('rowStats').innerText = `${document.getElementById('detailsBody').rows.length} / ${document.getElementById('detailsBody').rows.length}`; }
         window.onclick = e => { if(!e.target.matches('.filter-box')) document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show')); }
     </script>
