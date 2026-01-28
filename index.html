@@ -10,19 +10,16 @@
         #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; display: flex; justify-content: center; align-items: center; z-index: 9999; color: white; flex-direction: column; }
         .login-box { background: white; padding: 25px; border-radius: 5px; text-align: center; color: #333; }
         .login-box input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; box-sizing: border-box; }
-        .upload-section { background: white; padding: 15px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); margin-bottom: 10px; display: flex; align-items: center; gap: 20px; }
+        .upload-section { background: white; padding: 15px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); margin-bottom: 10px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
         .upload-group { font-size: 13px; font-weight: bold; }
+        .sheet-input { padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; margin-top: 5px; width: 180px; }
         button { border: none; padding: 8px 15px; border-radius: 3px; cursor: pointer; font-weight: bold; font-size: 11px; }
         .btn-refresh { background: #28a745; color: white; }
         .btn-display { background: #4472c4; color: white; }
-        
-        /* Control Buttons */
         .btn-export-filtered { background: #8e44ad; color: white; margin-left: 10px; }
         .btn-export-all { background: #34495e; color: white; margin-left: 5px; }
-        .btn-clear { background: #dc3545; color: white; margin-left: 5px; } /* Red for Clear */
+        .btn-clear { background: #dc3545; color: white; margin-left: 5px; }
         .btn-master-copy { background: #ffc107; color: #000; width: 90%; margin-top: 5px; border: 1px solid #d39e00; font-weight: bold; }
-        .btn-master-copy:hover { background: #e0a800; }
-
         .vts-title-bar { background-color: #4472c4; color: white; padding: 8px 15px; font-weight: bold; font-size: 14px; border: 1px solid #2f5597; }
         .table-container { overflow-x: auto; background: white; border: 1px solid #000; margin-bottom: 15px; }
         .main-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -31,19 +28,21 @@
         .loc-header { background-color: #ffff00; color: #000; font-weight: bold; }
         .total-header { background-color: #ffc000; color: #000; font-weight: bold; }
         .stat-sub { display: block; font-size: 9px; font-weight: normal; }
+        .tally-green { color: #28a745; font-weight: bold; }
+        .tally-red { color: #dc3545; font-weight: bold; }
         .var-row { background-color: #fce4d6; color: #ff0000; font-weight: bold; }
         .clickable { cursor: pointer; text-decoration: underline; }
-        .details-container { overflow-y: auto; max-height: 500px; border: 1px solid #000; background: white; }
+        .details-container { overflow: auto; max-height: 550px; border: 1px solid #000; background: white; }
         .details-table { width: 100%; border-collapse: collapse; }
-        .details-table thead th { position: sticky; top: 0; background-color: #333; color: white; padding: 10px 4px; border: 1px solid #000; font-size: 11px; z-index: 10; }
+        .details-table thead th { position: sticky; top: 0; background-color: #333; color: white; padding: 10px 6px; border: 1px solid #000; font-size: 11px; z-index: 10; min-width: 100px; }
         .cs-search-input { width: 90%; padding: 4px; font-size: 10px; border: 1px solid #ccc; margin-top: 5px; outline: none; }
         .filter-box { background: white; color: black; border: 1px solid #ccc; padding: 2px; width: 95%; cursor: pointer; font-size: 10px; margin-top: 5px; text-align: left; display: inline-block; position: relative; }
         .dropdown-menu { display: none; position: absolute; background: white; border: 1px solid #333; width: 200px; max-height: 250px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 8px rgba(0,0,0,0.2); padding: 5px; color: black; font-weight: normal; }
         .dropdown-menu label { display: block; padding: 4px; cursor: pointer; border-bottom: 1px solid #eee; }
         .show { display: block; }
-        .details-table td { border: 1px solid #000; padding: 4px; text-align: center; font-size: 11px; white-space: nowrap; }
+        .details-table td { border: 1px solid #000; padding: 5px; text-align: center; font-size: 11px; white-space: nowrap; }
         .na-text { color: red; font-weight: bold; }
-        .source-col { font-size: 9px !important; color: #555; max-width: 100px; overflow: hidden; text-overflow: ellipsis; }
+        .source-col { font-size: 9px !important; color: #555; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
     </style>
 </head>
 <body>
@@ -58,7 +57,11 @@
 
     <div id="mainApp" style="display:none;">
         <div class="upload-section">
-            <div class="upload-group">1. HAULING PLAN:<br><input type="file" id="hInput" accept=".xlsx"></div>
+            <div class="upload-group">
+                1. HAULING PLAN:<br>
+                <input type="file" id="hInput" accept=".xlsx"><br>
+                <input type="text" id="sheetNameInput" class="sheet-input" placeholder="Sheet: MONTH DD,YYYY">
+            </div>
             <div class="upload-group">2. ANDON (Multiple):<br><input type="file" id="aInput" accept=".csv" multiple></div>
             <button class="btn-refresh" onclick="processData()">REFRESH</button>
             <button class="btn-display" onclick="showDetails()">SHOW DETAILS</button>
@@ -105,15 +108,29 @@
         function login() { if(document.getElementById('passInput').value === "Ems@pau123") { document.getElementById('loginOverlay').style.display='none'; document.getElementById('mainApp').style.display='block'; } }
 
         let haulingData = [], andonData = [];
-        const cols = ["C/S No.", "Model Description", "Exterior Color", "Vehicle Stockyard", "ETD MP", "DESTINATION", "ETA DEALER / POL", "CARRIER", "PREPARED (AC)", "INSPECTED (AD)", "ANDON SOURCE"];
+        // UPDATED: Added Batch No. (Luzon) to columns
+        const cols = ["C/S No.", "Batch No. (Luzon)", "Model Description", "Exterior Color", "Vehicle Stockyard", "ETD MP", "DESTINATION", "ETA DEALER / POL", "CARRIER", "PREPARED (AC)", "INSPECTED (AD)", "ANDON SOURCE"];
 
         document.getElementById('hInput').addEventListener('change', e => {
+            const file = e.target.files[0];
+            const targetSheet = document.getElementById('sheetNameInput').value.trim();
+            if(!targetSheet) {
+                alert("Please enter the Sheet Name first.");
+                e.target.value = "";
+                return;
+            }
             const reader = new FileReader();
             reader.onload = ev => {
                 const wb = XLSX.read(new Uint8Array(ev.target.result), {type:'array', cellDates:true});
-                haulingData = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {raw:false});
+                if (!wb.SheetNames.includes(targetSheet)) {
+                    alert("Sheet '" + targetSheet + "' not found!");
+                    haulingData = [];
+                    return;
+                }
+                haulingData = XLSX.utils.sheet_to_json(wb.Sheets[targetSheet], {raw:false});
+                alert("Loaded " + haulingData.length + " units from " + targetSheet);
             };
-            reader.readAsArrayBuffer(e.target.files[0]);
+            reader.readAsArrayBuffer(file);
         });
 
         document.getElementById('aInput').addEventListener('change', async e => {
@@ -128,26 +145,29 @@
         });
 
         function processData() {
-            if(!haulingData.length) return alert("Upload Hauling Plan.");
+            if(!haulingData.length) return alert("Upload Hauling Plan and check Sheet Name.");
             const aMap = new Map();
             andonData.forEach(r => { if(r.csnumber) aMap.set(r.csnumber.trim().toUpperCase(), r); });
             const locs = ["1K11", "1K06", "1K07", "1K03", "1K12"];
+            
             locs.forEach(l => {
-                const p = haulingData.filter(u => String(u['Vehicle Stockyard']).includes(l)).length;
-                const a = haulingData.filter(u => String(u['Vehicle Stockyard']).includes(l) && aMap.has(String(u['C/S No.']).trim().toUpperCase())).length;
+                const p = haulingData.filter(u => String(u['Vehicle Stockyard']||'').includes(l)).length;
+                const a = haulingData.filter(u => String(u['Vehicle Stockyard']||'').includes(l) && aMap.has(String(u['C/S No.']||'').trim().toUpperCase())).length;
                 const el = document.getElementById(`s-${l}`);
-                el.innerText = `(${a}/${p})`; el.className = `stat-sub ${a===p && p>0 ? 'tally-green':'tally-red'}`;
+                el.innerText = `(${a}/${p})`; 
+                el.className = `stat-sub ${a===p && p>0 ? 'tally-green':'tally-red'}`;
             });
+
             const cats = ["RVL", "DSTC", "RPM", "WILL EX", "GSDC"];
             let h = "";
             cats.forEach(c => {
                 let p=[], pr=[], insp=[], vr=[];
                 locs.forEach(l => {
-                    const u = haulingData.filter(x => String(x['CARRIER']).toUpperCase().includes(c) && String(x['Vehicle Stockyard']).includes(l));
+                    const u = haulingData.filter(x => String(x['CARRIER']||'').toUpperCase().includes(c) && String(x['Vehicle Stockyard']||'').includes(l));
                     p.push(u.length);
                     let ctPr=0, ctIn=0;
                     u.forEach(unit => {
-                        const m = aMap.get(String(unit['C/S No.']).trim().toUpperCase());
+                        const m = aMap.get(String(unit['C/S No.']||'').trim().toUpperCase());
                         if(m){ if(m.prepared==='Y') ctPr++; if(m.inspected_by && m.inspected_by!=='NULL') ctIn++; }
                     });
                     pr.push(ctPr); insp.push(ctIn); vr.push(u.length - ctIn);
@@ -161,48 +181,8 @@
             document.getElementById('dashBody').innerHTML = h;
         }
 
-        function copyFilteredCS(btn) {
-            const rows = Array.from(document.getElementById('detailsBody').rows);
-            const visibleCS = rows.filter(r => r.style.display !== "none")
-                .map(r => r.cells[0].innerText.trim())
-                .filter(text => text !== "");
-            if (visibleCS.length === 0) return alert("No visible data.");
-            navigator.clipboard.writeText(visibleCS.join("\n")).then(() => {
-                const oldText = btn.innerText;
-                btn.innerText = "COPIED " + visibleCS.length + " UNITS";
-                setTimeout(() => btn.innerText = oldText, 2000);
-            });
-        }
-
-        // New Feature: Clear All Filters
-        function clearAllFilters() {
-            // 1. Reset text search boxes
-            document.querySelectorAll('.cs-search-input, .dropdown-menu input[type="text"]').forEach(input => input.value = "");
-            // 2. Reset checkboxes to checked
-            document.querySelectorAll('.dropdown-menu input[type="checkbox"]').forEach(cb => cb.checked = true);
-            // 3. Reset dropdown labels display
-            document.querySelectorAll('.dropdown-menu label').forEach(lbl => lbl.style.display = "");
-            // 4. Show all table rows
-            const rows = document.getElementById('detailsBody').rows;
-            for (let r of rows) r.style.display = "";
-            updateRowStats();
-        }
-
-        function exportExcel(onlyFiltered) {
-            const rows = Array.from(document.getElementById('detailsBody').rows);
-            const exportData = [cols];
-            rows.forEach(r => {
-                if (!onlyFiltered || r.style.display !== "none") {
-                    exportData.push(Array.from(r.cells).map(td => td.innerText.trim()));
-                }
-            });
-            const ws = XLSX.utils.aoa_to_sheet(exportData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "VTS_Data");
-            XLSX.writeFile(wb, onlyFiltered ? "VTS_Filtered.xlsx" : "VTS_Full.xlsx");
-        }
-
         function showDetails() {
+            if(!haulingData.length) return alert("No data to show.");
             const aMap = new Map();
             andonData.forEach(r => { if(r.csnumber) aMap.set(r.csnumber.trim().toUpperCase(), r); });
             const merged = haulingData.map(r => {
@@ -219,10 +199,7 @@
             let head = "<tr>";
             cols.forEach((col, i) => {
                 if(col === "C/S No.") {
-                    head += `<th>${col}<br>
-                        <input type="text" id="csSearchBox" class="cs-search-input" placeholder="Search..." onkeyup="applyFilters()"><br>
-                        <button class="btn-master-copy" onclick="copyFilteredCS(this)">COPY LIST</button>
-                    </th>`;
+                    head += `<th>${col}<br><input type="text" id="csSearchBox" class="cs-search-input" placeholder="Search..." onkeyup="applyFilters()"><br><button class="btn-master-copy" onclick="copyFilteredCS(this)">COPY LIST</button></th>`;
                 } else {
                     const unique = [...new Set(merged.map(x => String(x[col]||"").trim()))].sort();
                     head += `<th>${col}<br><div class="filter-box" onclick="toggleDrop(${i})">Filter ▼<div id="d-${i}" class="dropdown-menu" onclick="event.stopPropagation()">
@@ -236,8 +213,14 @@
 
             document.getElementById('detailsBody').innerHTML = merged.map(r => `<tr>
                 ${cols.map((c, idx) => {
-                    const val = r[idx === 10 ? "ANDON SOURCE" : c]||"";
-                    const css = (r[c] === 'n/a' ? 'na-text ' : '') + (idx === 10 ? 'source-col' : '');
+                    let val = "";
+                    // Column mapping logic
+                    if (c === "ANDON SOURCE") val = r["ANDON SOURCE"] || "";
+                    else if (c === "PREPARED (AC)") val = r["PREPARED (AC)"];
+                    else if (c === "INSPECTED (AD)") val = r["INSPECTED (AD)"];
+                    else val = r[c] || "";
+
+                    const css = (val === 'n/a' ? 'na-text ' : '') + (c === 'ANDON SOURCE' ? 'source-col' : '');
                     return `<td class="${css}">${val}</td>`;
                 }).join('')}
             </tr>`).join('');
@@ -246,6 +229,7 @@
             updateRowStats();
         }
 
+        // Standard helpers (Filters, Copy, Export)
         function toggleDrop(i) {
             const d = document.getElementById(`d-${i}`);
             const isShow = d.classList.contains('show');
@@ -288,20 +272,52 @@
             const rows = document.getElementById('detailsBody').rows;
             let visibleCount = 0;
             for (let r of rows) {
-                const isCat = r.cells[7].innerText.toUpperCase().includes(cat);
-                const isLoc = r.cells[3].innerText.includes(loc);
+                // Adjust index based on new column position (CARRIER is now index 8, Stockyard index 4, etc.)
+                const isCat = r.cells[8].innerText.toUpperCase().includes(cat);
+                const isLoc = r.cells[4].innerText.includes(loc);
                 let match = isCat && isLoc;
                 if(match) {
-                    if(type === 'PREP') match = r.cells[8].innerText === 'Y';
-                    if(type === 'INSP') match = r.cells[9].innerText !== "" && r.cells[9].innerText !== "NULL" && r.cells[9].innerText !== "n/a";
-                    if(type === 'VAR') match = r.cells[9].innerText === "" || r.cells[9].innerText === "NULL" || r.cells[9].innerText === "n/a";
+                    if(type === 'PREP') match = r.cells[9].innerText === 'Y';
+                    if(type === 'INSP') match = r.cells[10].innerText !== "" && r.cells[10].innerText !== "NULL" && r.cells[10].innerText !== "n/a";
+                    if(type === 'VAR') match = r.cells[10].innerText === "" || r.cells[10].innerText === "NULL" || r.cells[10].innerText === "n/a";
                 }
                 r.style.display = match ? "" : "none";
                 if(match) visibleCount++;
             }
             document.getElementById('rowStats').innerText = `${visibleCount} / ${rows.length}`;
         }
-        function updateRowStats() { document.getElementById('rowStats').innerText = `${document.getElementById('detailsBody').rows.length} / ${document.getElementById('detailsBody').rows.length}`; }
+        function clearAllFilters() {
+            document.querySelectorAll('.cs-search-input, .dropdown-menu input[type="text"]').forEach(input => input.value = "");
+            document.querySelectorAll('.dropdown-menu input[type="checkbox"]').forEach(cb => cb.checked = true);
+            document.querySelectorAll('.dropdown-menu label').forEach(lbl => lbl.style.display = "");
+            const rows = document.getElementById('detailsBody').rows;
+            for (let r of rows) r.style.display = "";
+            updateRowStats();
+        }
+        function exportExcel(onlyFiltered) {
+            const rows = Array.from(document.getElementById('detailsBody').rows);
+            const exportData = [cols];
+            rows.forEach(r => {
+                if (!onlyFiltered || r.style.display !== "none") exportData.push(Array.from(r.cells).map(td => td.innerText.trim()));
+            });
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "VTS_Data");
+            XLSX.writeFile(wb, onlyFiltered ? "VTS_Filtered.xlsx" : "VTS_Full.xlsx");
+        }
+        function copyFilteredCS(btn) {
+            const rows = Array.from(document.getElementById('detailsBody').rows);
+            const visibleCS = rows.filter(r => r.style.display !== "none").map(r => r.cells[0].innerText.trim()).filter(text => text !== "");
+            if (visibleCS.length === 0) return alert("No visible data.");
+            navigator.clipboard.writeText(visibleCS.join("\n")).then(() => {
+                const oldText = btn.innerText; btn.innerText = "COPIED " + visibleCS.length + " UNITS";
+                setTimeout(() => btn.innerText = oldText, 2000);
+            });
+        }
+        function updateRowStats() { 
+            const rows = document.getElementById('detailsBody').rows;
+            document.getElementById('rowStats').innerText = `${rows.length} / ${rows.length}`; 
+        }
         window.onclick = e => { if(!e.target.matches('.filter-box')) document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show')); }
     </script>
 </body>
