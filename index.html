@@ -20,11 +20,29 @@
         .btn-export-all { background: #34495e; color: white; margin-left: 5px; }
         .btn-clear { background: #dc3545; color: white; margin-left: 5px; }
         .btn-master-copy { background: #ffc107; color: #000; width: 90%; margin-top: 5px; border: 1px solid #d39e00; font-weight: bold; }
-        .vts-title-bar { background-color: #4472c4; color: white; padding: 8px 15px; font-weight: bold; font-size: 14px; border: 1px solid #2f5597; }
-        .table-container { overflow-x: auto; background: white; border: 1px solid #000; margin-bottom: 15px; }
-        .main-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        .main-table th, .main-table td { border: 1px solid #000; padding: 8px; text-align: center; font-size: 12px; }
-        .cat-status-header { background-color: #333; color: white; width: 250px; }
+        
+        .vts-title-bar { background-color: #1a3a5f; color: white; padding: 10px 15px; font-weight: bold; font-size: 14px; border: 1px solid #000; text-align: center; }
+        
+        .table-container { width: 100%; overflow-x: auto; background: white; border: 1px solid #000; margin-bottom: 15px; }
+        .main-table { width: 100%; border-collapse: collapse; table-layout: auto; }
+        .main-table th, .main-table td { border: 1px solid #000; padding: 6px 4px; text-align: center; font-size: 11px; }
+        
+        /* Adjusted Light Gradient Header */
+        .cat-status-header { 
+            background: linear-gradient(to right, #0d1b3e, #7fb3d5); 
+            color: white; 
+            font-weight: bold;
+            min-width: 120px;
+        }
+        
+        /* Category Specific Base Styles */
+        .category-cell {
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+        }
+
         .loc-header { background-color: #ffff00; color: #000; font-weight: bold; }
         .total-header { background-color: #ffc000; color: #000; font-weight: bold; }
         .stat-sub { display: block; font-size: 9px; font-weight: normal; }
@@ -32,7 +50,8 @@
         .tally-red { color: #dc3545; font-weight: bold; }
         .var-row { background-color: #fce4d6; color: #ff0000; font-weight: bold; }
         .clickable { cursor: pointer; text-decoration: underline; }
-        .details-container { overflow: auto; max-height: 550px; border: 1px solid #000; background: white; }
+        
+        .details-container { overflow: auto; max-height: 550px; border: 1px solid #000; background: white; width: 100%; }
         .details-table { width: 100%; border-collapse: collapse; }
         .details-table thead th { position: sticky; top: 0; background-color: #333; color: white; padding: 10px 6px; border: 1px solid #000; font-size: 11px; z-index: 10; min-width: 100px; }
         .cs-search-input { width: 90%; padding: 4px; font-size: 10px; border: 1px solid #ccc; margin-top: 5px; outline: none; }
@@ -78,6 +97,7 @@
                         <th class="loc-header">1K07 - FilSyn <span id="s-1K07" class="stat-sub"></span></th>
                         <th class="loc-header">1K03 - LGICT <span id="s-1K03" class="stat-sub"></span></th>
                         <th class="loc-header">1K12 - Lawa <span id="s-1K12" class="stat-sub"></span></th>
+                        <th class="loc-header">1K13 - Sto. Tomas (RAL) <span id="s-1K13" class="stat-sub"></span></th>
                         <th class="total-header">TOTAL <span id="s-TOTAL" class="stat-sub"></span></th>
                     </tr>
                 </thead>
@@ -108,25 +128,16 @@
         function login() { if(document.getElementById('passInput').value === "Ems@pau123") { document.getElementById('loginOverlay').style.display='none'; document.getElementById('mainApp').style.display='block'; } }
 
         let haulingData = [], andonData = [];
-        // UPDATED: Added Batch No. (Luzon) to columns
         const cols = ["C/S No.", "Batch No. (Luzon)", "Model Description", "Exterior Color", "Vehicle Stockyard", "ETD MP", "DESTINATION", "ETA DEALER / POL", "CARRIER", "PREPARED (AC)", "INSPECTED (AD)", "ANDON SOURCE"];
 
         document.getElementById('hInput').addEventListener('change', e => {
             const file = e.target.files[0];
             const targetSheet = document.getElementById('sheetNameInput').value.trim();
-            if(!targetSheet) {
-                alert("Please enter the Sheet Name first.");
-                e.target.value = "";
-                return;
-            }
+            if(!targetSheet) { alert("Please enter the Sheet Name first."); e.target.value = ""; return; }
             const reader = new FileReader();
             reader.onload = ev => {
                 const wb = XLSX.read(new Uint8Array(ev.target.result), {type:'array', cellDates:true});
-                if (!wb.SheetNames.includes(targetSheet)) {
-                    alert("Sheet '" + targetSheet + "' not found!");
-                    haulingData = [];
-                    return;
-                }
+                if (!wb.SheetNames.includes(targetSheet)) { alert("Sheet '" + targetSheet + "' not found!"); return; }
                 haulingData = XLSX.utils.sheet_to_json(wb.Sheets[targetSheet], {raw:false});
                 alert("Loaded " + haulingData.length + " units from " + targetSheet);
             };
@@ -137,8 +148,7 @@
             andonData = [];
             for (let f of e.target.files) {
                 const d = await new Promise(res => Papa.parse(f, {header:true, skipEmptyLines:true, complete: r => {
-                    const rowsWithFile = r.data.map(row => ({ ...row, sourceFile: f.name }));
-                    res(rowsWithFile);
+                    res(r.data.map(row => ({ ...row, sourceFile: f.name })));
                 }}));
                 andonData = [...andonData, ...d];
             }
@@ -148,17 +158,29 @@
             if(!haulingData.length) return alert("Upload Hauling Plan and check Sheet Name.");
             const aMap = new Map();
             andonData.forEach(r => { if(r.csnumber) aMap.set(r.csnumber.trim().toUpperCase(), r); });
-            const locs = ["1K11", "1K06", "1K07", "1K03", "1K12"];
+            const locs = ["1K11", "1K06", "1K07", "1K03", "1K12", "1K13"];
             
             locs.forEach(l => {
                 const p = haulingData.filter(u => String(u['Vehicle Stockyard']||'').includes(l)).length;
                 const a = haulingData.filter(u => String(u['Vehicle Stockyard']||'').includes(l) && aMap.has(String(u['C/S No.']||'').trim().toUpperCase())).length;
                 const el = document.getElementById(`s-${l}`);
-                el.innerText = `(${a}/${p})`; 
-                el.className = `stat-sub ${a===p && p>0 ? 'tally-green':'tally-red'}`;
+                if(el){ el.innerText = `(${a}/${p})`; el.className = `stat-sub ${a===p && p>0 ? 'tally-green':'tally-red'}`; }
             });
 
             const cats = ["RVL", "DSTC", "RPM", "WILL EX", "GSDC"];
+            
+            // Function to assign unique light gradients per word
+            const getCatStyle = (cat) => {
+                const styles = {
+                    "RVL": "background: linear-gradient(to bottom, #1b4f72, #2e86c1);",
+                    "DSTC": "background: linear-gradient(to bottom, #145a32, #27ae60);",
+                    "RPM": "background: linear-gradient(to bottom, #78281f, #c0392b);",
+                    "WILL EX": "background: linear-gradient(to bottom, #512e5f, #8e44ad);",
+                    "GSDC": "background: linear-gradient(to bottom, #7e5109, #d68910);"
+                };
+                return styles[cat] || "background: #333;";
+            };
+
             let h = "";
             cats.forEach(c => {
                 let p=[], pr=[], insp=[], vr=[];
@@ -173,12 +195,19 @@
                     pr.push(ctPr); insp.push(ctIn); vr.push(u.length - ctIn);
                 });
                 const sum = arr => arr.reduce((a,b)=>a+b,0);
-                h += `<tr><td rowspan="4">${c}</td><td>PLAN</td>${p.map((x,i)=>`<td class="${x>0?'clickable':''}" onclick="filterDashboard('PLAN','${c}','${locs[i]}',${x})">${x}</td>`).join('')}<td>${sum(p)}</td></tr>`;
+                
+                h += `<tr><td rowspan="4" class="category-cell" style="${getCatStyle(c)}">${c}</td><td style="background:#f8f9fa; font-weight:bold;">PLAN</td>${p.map((x,i)=>`<td class="${x>0?'clickable':''}" onclick="filterDashboard('PLAN','${c}','${locs[i]}',${x})">${x}</td>`).join('')}<td>${sum(p)}</td></tr>`;
                 h += `<tr style="background:#e2efda"><td>PREP</td>${pr.map((x,i)=>`<td class="${x>0?'clickable':''}" onclick="filterDashboard('PREP','${c}','${locs[i]}',${x})">${x}</td>`).join('')}<td>${sum(pr)}</td></tr>`;
                 h += `<tr style="background:#fff2cc"><td>INSP</td>${insp.map((x,i)=>`<td class="${x>0?'clickable':''}" onclick="filterDashboard('INSP','${c}','${locs[i]}',${x})">${x}</td>`).join('')}<td>${sum(insp)}</td></tr>`;
                 h += `<tr class="var-row"><td>VAR</td>${vr.map((x,i)=>`<td class="${x>0?'clickable':''}" onclick="filterDashboard('VAR','${c}','${locs[i]}',${x})">${x}</td>`).join('')}<td>${sum(vr)}</td></tr>`;
             });
             document.getElementById('dashBody').innerHTML = h;
+            
+            const totP = haulingData.length;
+            const totA = andonData.filter(r => r.csnumber && haulingData.some(h => String(h['C/S No.']||'').trim().toUpperCase() === r.csnumber.trim().toUpperCase())).length;
+            const tEl = document.getElementById('s-TOTAL');
+            tEl.innerText = `(${totA}/${totP})`;
+            tEl.className = `stat-sub ${totA===totP && totP>0 ? 'tally-green':'tally-red'}`;
         }
 
         function showDetails() {
@@ -188,19 +217,13 @@
             const merged = haulingData.map(r => {
                 const cs = String(r['C/S No.']||"").trim().toUpperCase();
                 const m = aMap.get(cs);
-                return { 
-                    ...r, 
-                    "PREPARED (AC)": m ? (m.prepared || "N") : "n/a", 
-                    "INSPECTED (AD)": m ? (m.inspected_by || "") : "",
-                    "ANDON SOURCE": m ? m.sourceFile : "No Match"
-                };
+                return { ...r, "PREPARED (AC)": m ? (m.prepared || "N") : "n/a", "INSPECTED (AD)": m ? (m.inspected_by || "") : "", "ANDON SOURCE": m ? m.sourceFile : "No Match" };
             });
 
             let head = "<tr>";
             cols.forEach((col, i) => {
-                if(col === "C/S No.") {
-                    head += `<th>${col}<br><input type="text" id="csSearchBox" class="cs-search-input" placeholder="Search..." onkeyup="applyFilters()"><br><button class="btn-master-copy" onclick="copyFilteredCS(this)">COPY LIST</button></th>`;
-                } else {
+                if(col === "C/S No.") head += `<th>${col}<br><input type="text" id="csSearchBox" class="cs-search-input" placeholder="Search..." onkeyup="applyFilters()"><br><button class="btn-master-copy" onclick="copyFilteredCS(this)">COPY LIST</button></th>`;
+                else {
                     const unique = [...new Set(merged.map(x => String(x[col]||"").trim()))].sort();
                     head += `<th>${col}<br><div class="filter-box" onclick="toggleDrop(${i})">Filter ▼<div id="d-${i}" class="dropdown-menu" onclick="event.stopPropagation()">
                         <input type="text" placeholder="Search..." onkeyup="searchFilter(${i}, this)" style="width:100%; box-sizing:border-box; margin-bottom:5px;">
@@ -208,116 +231,92 @@
                         ${unique.map(v => `<label><input type="checkbox" value="${v||'BLANK'}" checked onchange="applyFilters()"> ${v||'(Blanks)'}</label>`).join('')}
                     </div></div></th>`;
                 }
+             head += "</tr>";
             });
-            document.getElementById('detailsHead').innerHTML = head + "</tr>";
-
-            document.getElementById('detailsBody').innerHTML = merged.map(r => `<tr>
-                ${cols.map((c, idx) => {
-                    let val = "";
-                    // Column mapping logic
-                    if (c === "ANDON SOURCE") val = r["ANDON SOURCE"] || "";
-                    else if (c === "PREPARED (AC)") val = r["PREPARED (AC)"];
-                    else if (c === "INSPECTED (AD)") val = r["INSPECTED (AD)"];
-                    else val = r[c] || "";
-
-                    const css = (val === 'n/a' ? 'na-text ' : '') + (c === 'ANDON SOURCE' ? 'source-col' : '');
-                    return `<td class="${css}">${val}</td>`;
-                }).join('')}
-            </tr>`).join('');
-
+            document.getElementById('detailsHead').innerHTML = head;
+            document.getElementById('detailsBody').innerHTML = merged.map(r => `<tr>${cols.map((c, idx) => {
+                let val = r[c] || "";
+                if (c === "ANDON SOURCE") val = r["ANDON SOURCE"] || "";
+                else if (c === "PREPARED (AC)") val = r["PREPARED (AC)"];
+                else if (c === "INSPECTED (AD)") val = r["INSPECTED (AD)"];
+                return `<td class="${val === 'n/a' ? 'na-text ' : ''}${c === 'ANDON SOURCE' ? 'source-col' : ''}">${val}</td>`;
+            }).join('')}</tr>`).join('');
             document.getElementById('detailsArea').style.display = 'block';
             updateRowStats();
         }
 
-        // Standard helpers (Filters, Copy, Export)
-        function toggleDrop(i) {
-            const d = document.getElementById(`d-${i}`);
-            const isShow = d.classList.contains('show');
-            document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
-            if(!isShow) d.classList.add('show');
-        }
+        function toggleDrop(i) { const d = document.getElementById(`d-${i}`); const isShow = d.classList.contains('show'); document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show')); if(!isShow) d.classList.add('show'); }
         function checkAll(i, m) { document.getElementById(`d-${i}`).querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = m.checked); applyFilters(); }
-        function searchFilter(i, input) {
-            const val = input.value.toUpperCase();
-            document.getElementById(`d-${i}`).querySelectorAll('label').forEach(l => {
-                if(l.innerText !== "(All)") l.style.display = l.innerText.toUpperCase().includes(val) ? "" : "none";
-            });
-        }
+        function searchFilter(i, input) { const val = input.value.toUpperCase(); document.getElementById(`d-${i}`).querySelectorAll('label').forEach(l => { if(l.innerText !== "(All)") l.style.display = l.innerText.toUpperCase().includes(val) ? "" : "none"; }); }
+        
         function applyFilters() {
             const rows = document.getElementById('detailsBody').rows;
             const csSearchVal = document.getElementById('csSearchBox')?.value.toUpperCase() || "";
             const dropdownFilters = {};
-            cols.forEach((_, i) => {
-                const d = document.getElementById(`d-${i}`);
-                if(d) dropdownFilters[i] = Array.from(d.querySelectorAll('input:checked')).map(c => c.value);
-            });
+            cols.forEach((_, i) => { const d = document.getElementById(`d-${i}`); if(d) dropdownFilters[i] = Array.from(d.querySelectorAll('input:checked')).map(c => c.value); });
             let count = 0;
             for (let r of rows) {
                 let show = true;
                 if(csSearchVal && !r.cells[0].innerText.toUpperCase().includes(csSearchVal)) show = false;
-                if(show) {
-                    for (let i in dropdownFilters) {
-                        const cellVal = r.cells[i].innerText.trim() || "BLANK";
-                        if(!dropdownFilters[i].includes(cellVal)) { show = false; break; }
-                    }
-                }
+                if(show) { for (let i in dropdownFilters) { const cellVal = r.cells[i].innerText.trim() || "BLANK"; if(!dropdownFilters[i].includes(cellVal)) { show = false; break; } } }
                 r.style.display = show ? "" : "none";
                 if(show) count++;
             }
             document.getElementById('rowStats').innerText = `${count} / ${rows.length}`;
         }
+
         function filterDashboard(type, cat, loc, val) {
             if(val === 0) return;
             showDetails();
             const rows = document.getElementById('detailsBody').rows;
-            let visibleCount = 0;
+            let count = 0;
             for (let r of rows) {
-                // Adjust index based on new column position (CARRIER is now index 8, Stockyard index 4, etc.)
                 const isCat = r.cells[8].innerText.toUpperCase().includes(cat);
                 const isLoc = r.cells[4].innerText.includes(loc);
                 let match = isCat && isLoc;
                 if(match) {
                     if(type === 'PREP') match = r.cells[9].innerText === 'Y';
-                    if(type === 'INSP') match = r.cells[10].innerText !== "" && r.cells[10].innerText !== "NULL" && r.cells[10].innerText !== "n/a";
-                    if(type === 'VAR') match = r.cells[10].innerText === "" || r.cells[10].innerText === "NULL" || r.cells[10].innerText === "n/a";
+                    if(type === 'INSP') match = !['','NULL','n/a'].includes(r.cells[10].innerText);
+                    if(type === 'VAR') match = ['','NULL','n/a'].includes(r.cells[10].innerText);
                 }
                 r.style.display = match ? "" : "none";
-                if(match) visibleCount++;
+                if(match) count++;
             }
-            document.getElementById('rowStats').innerText = `${visibleCount} / ${rows.length}`;
+            document.getElementById('rowStats').innerText = `${count} / ${rows.length}`;
         }
+
         function clearAllFilters() {
             document.querySelectorAll('.cs-search-input, .dropdown-menu input[type="text"]').forEach(input => input.value = "");
             document.querySelectorAll('.dropdown-menu input[type="checkbox"]').forEach(cb => cb.checked = true);
-            document.querySelectorAll('.dropdown-menu label').forEach(lbl => lbl.style.display = "");
             const rows = document.getElementById('detailsBody').rows;
             for (let r of rows) r.style.display = "";
             updateRowStats();
         }
+
         function exportExcel(onlyFiltered) {
             const rows = Array.from(document.getElementById('detailsBody').rows);
             const exportData = [cols];
-            rows.forEach(r => {
-                if (!onlyFiltered || r.style.display !== "none") exportData.push(Array.from(r.cells).map(td => td.innerText.trim()));
-            });
+            rows.forEach(r => { if (!onlyFiltered || r.style.display !== "none") exportData.push(Array.from(r.cells).map(td => td.innerText.trim())); });
             const ws = XLSX.utils.aoa_to_sheet(exportData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "VTS_Data");
             XLSX.writeFile(wb, onlyFiltered ? "VTS_Filtered.xlsx" : "VTS_Full.xlsx");
         }
+
         function copyFilteredCS(btn) {
             const rows = Array.from(document.getElementById('detailsBody').rows);
             const visibleCS = rows.filter(r => r.style.display !== "none").map(r => r.cells[0].innerText.trim()).filter(text => text !== "");
-            if (visibleCS.length === 0) return alert("No visible data.");
             navigator.clipboard.writeText(visibleCS.join("\n")).then(() => {
                 const oldText = btn.innerText; btn.innerText = "COPIED " + visibleCS.length + " UNITS";
                 setTimeout(() => btn.innerText = oldText, 2000);
             });
         }
+
         function updateRowStats() { 
             const rows = document.getElementById('detailsBody').rows;
             document.getElementById('rowStats').innerText = `${rows.length} / ${rows.length}`; 
         }
+
         window.onclick = e => { if(!e.target.matches('.filter-box')) document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show')); }
     </script>
 </body>
