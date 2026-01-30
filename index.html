@@ -18,24 +18,17 @@
         .btn-clear { background: #dc3545; color: white; margin-left: 5px; }
         .btn-master-copy { background: #ffc107; color: #000; width: 90%; margin-top: 5px; border: 1px solid #d39e00; font-weight: bold; }
         .vts-title-bar { background-color: #4472c4; color: white; padding: 8px 15px; font-weight: bold; font-size: 14px; border: 1px solid #2f5597; }
-        
         .table-container { width: 100%; overflow-x: auto; background: white; border: 1px solid #000; margin-bottom: 15px; }
         .main-table { width: 100%; border-collapse: collapse; table-layout: auto; }
         .main-table th, .main-table td { border: 1px solid #000; padding: 6px 4px; text-align: center; font-size: 11px; }
-        
-        /* Main Header lang ang Yellow */
         .main-cat-header { background-color: #ffff00; color: #000; font-weight: bold; }
-        
-        /* Tinanggal ang background-color dito para sumunod sa kulay ng row */
         .cat-label-cell { min-width: 100px; font-weight: bold; vertical-align: middle; }
-        
         .loc-header { background-color: #f8f9fa; color: #000; font-weight: bold; }
         .total-header { background-color: #e9ecef; color: #000; font-weight: bold; }
         .stat-sub { display: block; font-size: 9px; font-weight: normal; }
         .tally-green { color: #28a745; font-weight: bold; }
         .tally-red { color: #dc3545; font-weight: bold; }
         .clickable { cursor: pointer; text-decoration: underline; }
-
         .details-container { overflow: auto; max-height: 550px; border: 1px solid #000; background: white; width: 100%; }
         .details-table { width: 100%; border-collapse: collapse; }
         .details-table thead th { position: sticky; top: 0; background-color: #333; color: white; padding: 10px 6px; border: 1px solid #000; font-size: 11px; z-index: 10; min-width: 100px; }
@@ -105,6 +98,26 @@
         let haulingData = [], andonData = [];
         const cols = ["C/S No.", "Batch No. (Luzon)", "Model Description", "Exterior Color", "Vehicle Stockyard", "ETD MP", "DESTINATION", "ETA DEALER / POL", "CARRIER", "PREPARED (AC)", "INSPECTED (AD)", "ANDON SOURCE"];
 
+        // Unified Name Mapping based on your images
+        const nameMapping = {
+            "RVL MOVERS 01": "RITZ",
+            "RVL MOVERS 02": "NOEL",
+            "RVL MOVERS 03": "ARK",
+            "RVL MOVERS 04": "SONNY",
+            "RVL MOVERS 05": "BONNIE",
+            "XDE 01": "PAUL",
+            "XDE 02": "EUGENE",
+            "XDE 03": "BILOG",
+            "XDE 04": "ALLEM",
+            "XDE 05": "OLIVER",
+            "GSDC 01": "GSDC",
+            "DIMPLESTAR 04": "DSTC",
+            "DIMPLESTAR 01": "DSTC",
+            "RPM 02": "RPM",
+            "RPM 04": "RPM",
+            "WILLEXPRESS 03": "WILL EX"
+        };
+
         document.getElementById('hInput').addEventListener('change', e => {
             const file = e.target.files[0];
             const targetSheet = document.getElementById('sheetNameInput').value.trim();
@@ -145,35 +158,26 @@
                 }
             });
 
-            // Specific Soft/Pale Colors per category
-            const config = {
-                "RVL": "#e3f2fd",     // Soft Blue
-                "DSTC": "#f3e5f5",    // Soft Purple
-                "GSDC": "#e8f5e9",    // Soft Green
-                "RPM": "#fff3e0",     // Soft Orange
-                "WILL EX": "#fce4ec"  // Soft Pink
-            };
-
+            const config = { "RVL": "#e3f2fd", "DSTC": "#f3e5f5", "GSDC": "#e8f5e9", "RPM": "#fff3e0", "WILL EX": "#fce4ec" };
             const cats = ["RVL", "DSTC", "GSDC", "RPM", "WILL EX"];
             let h = "";
             cats.forEach(c => {
                 let paleColor = config[c] || "#ffffff";
                 let p=[], pr=[], insp=[], vr=[];
-                
                 locs.forEach(l => {
                     const u = haulingData.filter(x => String(x['CARRIER']||'').toUpperCase().includes(c) && String(x['Vehicle Stockyard']||'').includes(l));
                     p.push(u.length);
                     let ctPr=0, ctIn=0;
                     u.forEach(unit => {
                         const m = aMap.get(String(unit['C/S No.']||'').trim().toUpperCase());
-                        if(m){ if(m.prepared==='Y') ctPr++; if(m.inspected_by && m.inspected_by!=='NULL') ctIn++; }
+                        if(m){ 
+                            if(m.prepared==='Y') ctPr++; 
+                            if(m.inspected_by && m.inspected_by!=='NULL' && m.inspected_by!=='') ctIn++; 
+                        }
                     });
                     pr.push(ctPr); insp.push(ctIn); vr.push(u.length - ctIn);
                 });
-
                 const sum = arr => arr.reduce((a,b)=>a+b,0);
-                
-                // Ginamit ang "cat-label-cell" para hindi ma-override ng yellow yung labels
                 h += `<tr style="background:${paleColor}"><td rowspan="4" class="cat-label-cell">${c}</td><td>PLAN</td>${p.map((x,i)=>`<td class="${x>0?'clickable':''}" onclick="filterDashboard('PLAN','${c}','${locs[i]}',${x})">${x}</td>`).join('')}<td>${sum(p)}</td></tr>`;
                 h += `<tr style="background:${paleColor}"><td>PREP</td>${pr.map((x,i)=>`<td class="${x>0?'clickable':''}" onclick="filterDashboard('PREP','${c}','${locs[i]}',${x})">${x}</td>`).join('')}<td>${sum(pr)}</td></tr>`;
                 h += `<tr style="background:${paleColor}"><td>INSP</td>${insp.map((x,i)=>`<td class="${x>0?'clickable':''}" onclick="filterDashboard('INSP','${c}','${locs[i]}',${x})">${x}</td>`).join('')}<td>${sum(insp)}</td></tr>`;
@@ -188,15 +192,24 @@
             tEl.className = `stat-sub ${totA===totP && totP>0 ? 'tally-green':'tally-red'}`;
         }
 
-        // Functions for details remain unchanged
         function showDetails() {
             if(!haulingData.length) return alert("No data to show.");
             const aMap = new Map();
             andonData.forEach(r => { if(r.csnumber) aMap.set(r.csnumber.trim().toUpperCase(), r); });
+
             const merged = haulingData.map(r => {
                 const cs = String(r['C/S No.']||"").trim().toUpperCase();
                 const m = aMap.get(cs);
-                return { ...r, "PREPARED (AC)": m ? (m.prepared || "N") : "n/a", "INSPECTED (AD)": m ? (m.inspected_by || "") : "", "ANDON SOURCE": m ? m.sourceFile : "No Match" };
+                
+                let inspRaw = m ? (m.inspected_by || "") : "";
+                let inspectedVal = nameMapping[inspRaw.trim().toUpperCase()] || inspRaw;
+
+                return { 
+                    ...r, 
+                    "PREPARED (AC)": m ? (m.prepared || "N") : "n/a", 
+                    "INSPECTED (AD)": inspectedVal, 
+                    "ANDON SOURCE": m ? m.sourceFile : "No Match" 
+                };
             });
 
             let head = "<tr>";
@@ -214,9 +227,6 @@
             document.getElementById('detailsHead').innerHTML = head + "</tr>";
             document.getElementById('detailsBody').innerHTML = merged.map(r => `<tr>${cols.map((c, idx) => {
                 let val = r[c] || "";
-                if (c === "ANDON SOURCE") val = r["ANDON SOURCE"] || "";
-                else if (c === "PREPARED (AC)") val = r["PREPARED (AC)"];
-                else if (c === "INSPECTED (AD)") val = r["INSPECTED (AD)"];
                 return `<td class="${val === 'n/a' ? 'na-text ' : ''}${c === 'ANDON SOURCE' ? 'source-col' : ''}">${val}</td>`;
             }).join('')}</tr>`).join('');
             document.getElementById('detailsArea').style.display = 'block';
@@ -226,6 +236,7 @@
         function toggleDrop(i) { const d = document.getElementById(`d-${i}`); const isShow = d.classList.contains('show'); document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show')); if(!isShow) d.classList.add('show'); }
         function checkAll(i, m) { document.getElementById(`d-${i}`).querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = m.checked); applyFilters(); }
         function searchFilter(i, input) { const val = input.value.toUpperCase(); document.getElementById(`d-${i}`).querySelectorAll('label').forEach(l => { if(l.innerText !== "(All)") l.style.display = l.innerText.toUpperCase().includes(val) ? "" : "none"; }); }
+        
         function applyFilters() {
             const rows = document.getElementById('detailsBody').rows;
             const csSearchVal = document.getElementById('csSearchBox')?.value.toUpperCase() || "";
