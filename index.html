@@ -113,7 +113,7 @@
                 const wb = XLSX.read(new Uint8Array(ev.target.result), {type:'array', cellDates:true});
                 if (!wb.SheetNames.includes(targetSheet)) { alert("Sheet '" + targetSheet + "' not found!"); return; }
                 haulingData = XLSX.utils.sheet_to_json(wb.Sheets[targetSheet], {raw:false});
-                alert("Loaded " + haulingData.length + " units from " + targetSheet);
+                alert("Loaded " + haulingData.length + " units mula sa " + targetSheet);
             };
             reader.readAsArrayBuffer(file);
         });
@@ -122,18 +122,16 @@
             andonData = [];
             for (let f of e.target.files) {
                 const d = await new Promise(res => Papa.parse(f, {
-                    header: false, // Ginagamit para makuha ang Index 7 (Column H)
+                    header: false,
                     skipEmptyLines: true, 
                     complete: r => {
                         const rows = r.data;
                         if (rows.length < 2) { res([]); return; }
-                        
-                        // Hanapin ang headers para sigurado ang mapping
                         const headerRow = rows[0].map(h => String(h || "").toLowerCase().trim());
                         const csIdx = headerRow.indexOf("csnumber");
                         const prepIdx = headerRow.indexOf("prepared");
                         const inspIdx = headerRow.indexOf("inspected_by");
-                        const dispatchIdx = 7; // Fixed Index 7 para sa Column H
+                        const dispatchIdx = 7; 
 
                         const mapped = rows.slice(1).map(row => ({
                             csnumber: String(row[csIdx !== -1 ? csIdx : 0] || "").trim().toUpperCase(),
@@ -150,17 +148,18 @@
         });
 
         function processData() {
-            if(!haulingData.length) return alert("Upload Hauling Plan and check Sheet Name.");
+            if(!haulingData.length) return alert("Upload Hauling Plan muna.");
             const aMap = new Map();
             andonData.forEach(r => { if(r.csnumber) aMap.set(r.csnumber, r); });
+            
             const locs = ["1K11", "1K06", "1K07", "1K03", "1K12", "1K13"];
             
+            // CORRECTED HEADER TALLY LOGIC
             locs.forEach(l => {
-                const p = haulingData.filter(u => String(u['Vehicle Stockyard']||'').includes(l)).length;
-                const a = haulingData.filter(u => {
-                    const cs = String(u['C/S No.']||'').trim().toUpperCase();
-                    return cs && aMap.has(cs);
-                }).length;
+                const locUnits = haulingData.filter(u => String(u['Vehicle Stockyard']||'').includes(l));
+                const p = locUnits.length;
+                const a = locUnits.filter(u => aMap.has(String(u['C/S No.']||'').trim().toUpperCase())).length;
+                
                 const el = document.getElementById(`s-${l}`);
                 if(el){
                     el.innerText = `(${a}/${p})`; 
@@ -195,25 +194,23 @@
             });
             document.getElementById('dashBody').innerHTML = h;
             
-            const totP = haulingData.length;
-            const totA = andonData.filter(r => r.csnumber && haulingData.some(h => String(h['C/S No.']||'').trim().toUpperCase() === r.csnumber)).length;
+            const totalPlanned = haulingData.length;
+            const totalAndonMatch = haulingData.filter(h => aMap.has(String(h['C/S No.']||'').trim().toUpperCase())).length;
             const tEl = document.getElementById('s-TOTAL');
-            tEl.innerText = `(${totA}/${totP})`;
-            tEl.className = `stat-sub ${totA===totP && totP>0 ? 'tally-green':'tally-red'}`;
+            tEl.innerText = `(${totalAndonMatch}/${totalPlanned})`;
+            tEl.className = `stat-sub ${totalAndonMatch===totalPlanned && totalPlanned>0 ? 'tally-green':'tally-red'}`;
         }
 
         function showDetails() {
-            if(!haulingData.length) return alert("No data to show.");
+            if(!haulingData.length) return alert("Walang data.");
             const aMap = new Map();
             andonData.forEach(r => { if(r.csnumber) aMap.set(r.csnumber, r); });
 
             const merged = haulingData.map(r => {
                 const cs = String(r['C/S No.']||"").trim().toUpperCase();
                 const m = aMap.get(cs);
-                
                 let inspRaw = m ? (m.inspected_by || "") : "";
                 let inspectedVal = nameMapping[inspRaw.trim().toUpperCase()] || inspRaw;
-
                 return { 
                     ...r, 
                     "PREPARED (AC)": m ? (m.prepared || "N") : "n/a", 
