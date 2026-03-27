@@ -131,7 +131,7 @@
                         const csIdx = headerRow.indexOf("csnumber");
                         const prepIdx = headerRow.indexOf("prepared");
                         const inspIdx = headerRow.indexOf("inspected_by");
-                        const dispatchIdx = 7; 
+                        const dispatchIdx = 8; 
 
                         const mapped = rows.slice(1).map(row => ({
                             csnumber: String(row[csIdx !== -1 ? csIdx : 0] || "").trim().toUpperCase(),
